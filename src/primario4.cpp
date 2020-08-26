@@ -175,7 +175,6 @@ void Kill_Them_All(void)
 // Thread to notify the user the status of the system
 void* Check_thread (void*parmthread)
 {
-	printf("Thread Creado");
 	while(1){
 		CurrentState(&prim);
 		sleep(CHECK_INTERVAL);
@@ -185,7 +184,6 @@ void* Check_thread (void*parmthread)
 // Thread to update the whole system
 void* Update_thread (void*parmthread)
 {
-	printf("Thread Creado");
 	while(1){
 		primUpdates(&prim);
 		usleep(UPDATE_INTERVALU);
@@ -262,7 +260,8 @@ int Init_All(void)
 	}
 	else{
 		perror("* Creation of Current State Thread ");
-	}		
+	}	
+	
 	desbloquearSign();	
 	while( true )
 	{	
@@ -413,6 +412,7 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 	dprim_state_t LocalA=NO_STATE;
 	dprim_state_t LocalF=NO_STATE;
 	dprim_state_t Comm=NO_STATE;
+	dprim_state_t actual=prim->state;
 	bool Event=0; 
 	bool error_detected=NO_ERROR;
 	
@@ -510,7 +510,11 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			prim->state=FAIL;
 			//ResetChange(prim);
 		}
-		if((PREALARM==prim->state)||(PREFAIL==prim->state)||(PRENORMAL==prim->state)||
+		if(actual==prim->state){
+			printf(" RESET \r\n");
+			ResetChange(prim);
+		}
+		else if((PREALARM==prim->state)||(PREFAIL==prim->state)||(PRENORMAL==prim->state)||
 			(PRE_ALARM_FAIL==prim->state)){
 			ResetChange(prim);
 		}

@@ -99,6 +99,12 @@ void RF24DP::Read_Data(RF24Network& netw){
 	}else
 	{
 		Status = Lectura_Mesh(netw);	
+		
+		if(Status==(int)ALARM_FAIL_CODE){
+			Code=Alarm_Fail_Mode;
+			Receiver.state = RECEIVE_RECEIVED_OK;
+			FireComm_Channel.ErrorCounter=0;
+		}	
 					
 		if(Status==(int)ALARM_CODE){
 			Code=Alarm_Mode;

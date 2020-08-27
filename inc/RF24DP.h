@@ -37,7 +37,7 @@ extern "C" {
 #define NORMAL_CODE 321
 #define FAIL_CODE 654
 #define ALARM_CODE 987
-
+#define ALARM_FAIL_CODE 258
 
 #define WRITING_MAX_TIME 1000
 #define READING_MAX_TIME 200
@@ -64,6 +64,7 @@ enum Code_t{
    Normal_Mode=0,
    Fail_Mode,
    Alarm_Mode,
+   Alarm_Fail_Mode,
    Receiving_Mode
 }; 
 

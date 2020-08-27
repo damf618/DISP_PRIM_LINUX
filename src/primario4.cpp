@@ -381,13 +381,16 @@ dprim_state_t ButtonCheck(dprimario_t * prim, dprim_state_t eventcase,dprim_stat
 }
 
 // Verify the transition conditions related to uart codes
-dprim_state_t CommCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t casef,dprim_state_t casen  )
+dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t casef,dprim_state_t casen, dprim_state_t caseaf )
 {
 	dprim_state_t comm_state;	
 	if(!delayRead(&prim->delay)){		//Verify if the Timeout transition limit
 		if((FireComm.RF24DPRead()==Comm_received)){  //Was an Alarm code received?
 			int AUX=FireComm.Get_Code();
-			if(AUX==Alarm_Mode){
+			if(AUX==Alarm_Fail_Mode){
+				comm_state=caseaf;
+			}
+			else if(AUX==Alarm_Mode){
 				comm_state=casea;
 			}	
 			else if(AUX==Fail_Mode){
@@ -440,7 +443,7 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			Event=1;
 		}
 	}
-	Comm=CommCheck(prim,casea,casef,casen);
+	Comm=CommCheck(prim,casea,casef,casen,caseaf);
 	if(Comm!=NO_STATE)
 	{
 		Event=1;

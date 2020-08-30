@@ -42,6 +42,10 @@ void RF24DP:: RF24ChannelHop(void){
 int RF24DP::Comm_Status(void){
 	int rtn=0;
 	
+	// OK      -> 0
+	// ERROR   -> 1
+	// HOPPING -> 2
+	// FIXING  -> 3
 	if(error)
 	{
 		rtn=1;
@@ -105,7 +109,6 @@ void RF24DP::Read_Data(RF24Network& netw){
 			Receiver.state = RECEIVE_RECEIVED_OK;
 			FireComm_Channel.ErrorCounter=0;
 		}	
-					
 		if(Status==(int)ALARM_CODE){
 			Code=Alarm_Mode;
 			Receiver.state = RECEIVE_RECEIVED_OK;

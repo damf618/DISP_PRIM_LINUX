@@ -39,6 +39,11 @@ extern "C" {
 #define ALARM_CODE 987
 #define ALARM_FAIL_CODE 258
 
+#define OK_MSG 0
+#define ERROR_MSG 1
+#define HOPPING_MSG 2
+#define FIXING_MSG 3
+
 #define WRITING_MAX_TIME 1000
 #define READING_MAX_TIME 200
 

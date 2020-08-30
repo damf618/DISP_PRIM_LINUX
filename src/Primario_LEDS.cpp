@@ -14,15 +14,6 @@
 #include <RF24/RF24.h>
 #include <stdio.h>
 
-
-/*=====[Definition macros of private constants]==============================*/
-
-/*=====[Definitions of extern global variables]==============================*/
-
-/*=====[Definitions of public global variables]==============================*/
-
-/*=====[Definitions of private global variables]=============================*/
-
 /*=====[Main function, program entry point after power on or reset]==========*/
 //Configures the corresponding modes for each GPIO
 void gpioSet(void){

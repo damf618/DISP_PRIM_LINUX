@@ -46,6 +46,7 @@ extern "C" {
 
 /*=====[Definition macros of public constants]===============================*/
 #define INITIAL_DEFAULT_STATE NORMAL
+#define INITIAL_COMM_DEFAULT_STATE OK
 
 #define DEF_TIMEOUT 3500			   //Timeout limit between transitionsions
 
@@ -55,7 +56,7 @@ extern "C" {
 
 #define TRUE 1
 #define FALSE 0
-#define PROGRAM_THREADS 2
+#define PROGRAM_THREADS 3
 #define MAX_THREADS 3
 #define ERRORES 1
 #define ERROR_EXIT 1
@@ -72,6 +73,9 @@ extern "C" {
 // Possible states for the MEFs
 typedef enum{ NORMAL , ALARM, FAIL,ALARM_FAIL, PRENORMAL, PREALARM, PREFAIL,ALARM_PREFAIL,PRE_ALARM_FAIL, NO_STATE} dprim_state_t;
 
+// 
+typedef enum{ OK, ERROR, HOPPING, FIXING } comm_state_t;
+
 // Structure with the different data types to generate an independent Monitor
 typedef struct{
 	tick_t timeout;
@@ -82,7 +86,7 @@ typedef struct{
 	uint8_t count;			//Count of Cycles.
 	bool COMMFLAG;		//Flag for UART interaction 1 ON, 0 OFF
 	bool TEST_MODE;		//Flag for defining TEST mode
-	dprim_state_t comm_state;
+	comm_state_t comm_state;
 	dprim_state_t AlarmContact_state;
 	dprim_state_t FailContact_state;
 	int comm_status;

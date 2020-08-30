@@ -27,22 +27,108 @@ RF24DP FireComm(radio,network);
 dprimario_t prim;
 volatile sig_atomic_t sig_flag;
 
-int Thread_Counter=PROGRAM_THREADS;
 pthread_t Threads_Pointer[PROGRAM_THREADS];
+
+pthread_mutex_t mutexprim = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutexconsola = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutexspi = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutexfile = PTHREAD_MUTEX_INITIALIZER;
+
+/*pthread_mutex_lock (&mutexprim);
+  pthread_mutex_unlock (&mutexconsola);
+*/
+sem_t Update_sem; 
+sem_t RF_Maintenance_sem; 
+/*sem_wait(&sync_sem);
+  sem_post(&sync_sem);  
+*/
+
+
 FILE * statesfd;
+
+// Block of any of the unexpected signals
+void bloquearSign(void)
+{
+    sigset_t set;
+    sigfillset(&set);
+    pthread_sigmask(SIG_BLOCK, &set, NULL);
+}
+
+// Unblock thee SIGINT and SIGTERM signals
+void desbloquearSign(void)
+{
+    sigset_t set;
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+    sigaddset(&set, SIGTERM);
+    pthread_sigmask(SIG_UNBLOCK, &set, NULL);
+}
+
+// Handler for the Closing Signal
+void SIG_Handler(int sig)
+{
+	sig_flag=TRUE;									       //Correcion 5
+	printf("\n Finalizando\n");	
+}
+
+// Organized Exit of the system
+void Kill_Them_All(void)
+{				
+	int thread_cancel;
+	int i;
+
+	if(TRUE==sig_flag){
+		printf("\n Procesando SIG. Eliminando Threats y Cerrando Sockets\n");
+		for(i=0;i<PROGRAM_THREADS;i++){
+			thread_cancel=pthread_cancel (Threads_Pointer[i]);
+			if(thread_cancel<0){
+				perror("\n Impossible to close the Thread correctly \n");
+			}
+			else{
+				perror("Succesfully Cancel signal");
+			}
+			thread_cancel=pthread_join (Threads_Pointer[i], NULL);
+			if(FALSE!=thread_cancel){		//Esperar a que sean eliminados
+				perror("\n Not possible to join the Thread \n");
+			}
+			else{
+				perror("Succesfully Joined Thread");
+			}
+		}
+		if(FALSE==fclose(statesfd)){
+			perror("Log Succesfully closed");
+		}
+		else
+		{
+			perror("Error Closing the File");
+		}
+		exit(1);
+	}
+}
+
+void timestamp(char * actualtime)
+{
+    time_t ltime; 										/* calendar time */
+    ltime=time(NULL); 									/* get current cal time */
+    sprintf(actualtime,asctime(localtime(&ltime)));
+}
 
 void CurrentState(dprimario_t *prim)
 {
-	char CSTATE[20];
-
+	char CSTATE[50];
+		
 	statesfd = fopen("STATES_LOG.txt","a");
-	if (statesfd == NULL) {
-		printf("Error creating opening the file: STATES_LOG.txt.\n");
-		while(true){
-		}
+	if (statesfd == NULL)
+	{
+		printf("Error opening the file: STATES_LOG.txt.\n");
+		while(true){}
 	}
 	
-	switch( prim->state ) {
+	timestamp(CSTATE);
+	fprintf(statesfd,CSTATE, sizeof(CSTATE));
+
+	switch( prim->state )
+	{
 		case PRENORMAL:
 			printf("\r\n CURRENT STATE: PRE-NORMAL \r\n");
 			sprintf(CSTATE,"PRENORMAL\n");
@@ -90,93 +176,40 @@ void CurrentState(dprimario_t *prim)
 			fprintf(statesfd,CSTATE, sizeof(CSTATE));
 	}
 	
-	if(0==prim->comm_status)
+	if(OK==prim->comm_status)
 	{
 		sprintf(CSTATE,"COMM OK!\n");
 		fprintf(statesfd,CSTATE, sizeof(CSTATE));	
 	}
-	else if(1==prim->comm_status)
+	else if(ERROR==prim->comm_status)
 	{
 		sprintf(CSTATE,"COMM ERROR\n");
 		fprintf(statesfd,CSTATE, sizeof(CSTATE));	
 	}
-	else if(2==prim->comm_status)
+	else if(HOPPING==prim->comm_status)
 	{
 		sprintf(CSTATE,"CHANNEL HOPPING\n");
 		fprintf(statesfd,CSTATE, sizeof(CSTATE));
 	}
-	if(3==prim->comm_status)
+	else if(FIXING==prim->comm_status)
 	{
 		sprintf(CSTATE,"COMM FIXING\n");
 		fprintf(statesfd,CSTATE, sizeof(CSTATE));
 	}
-	fclose(statesfd); 
-	  
+	fclose(statesfd);	  
 }
 
-void bloquearSign(void)
-{
-    sigset_t set;
-    sigfillset(&set);
-    pthread_sigmask(SIG_BLOCK, &set, NULL);
-}
-
-void desbloquearSign(void)
-{
-    sigset_t set;
-    sigemptyset(&set);
-    sigaddset(&set, SIGINT);
-    sigaddset(&set, SIGTERM);
-    pthread_sigmask(SIG_UNBLOCK, &set, NULL);
-}
-
-void SIG_Handler(int sig)
-{
-	sig_flag=TRUE;									       //Correcion 5
-	printf("\n Finalizando\n");	
-}
-
-// Correct and organized closure of the system
-void Kill_Them_All(void)
-{				
-	int thread_cancel;
-	int i;
-
-	if(TRUE==sig_flag){
-		printf("\n Procesando SIG. Eliminando Threats y Cerrando Sockets\n");
-		for(i=0;i<PROGRAM_THREADS;i++){
-			printf("Eliminando Thread %d",i);
-			thread_cancel=pthread_cancel (Threads_Pointer[i]);
-			if(thread_cancel<0){
-				perror("\n Impossible to close the Thread correctly \n");
-			}
-			else{
-				perror("Succesfully Cancel signal");
-			}
-			thread_cancel=pthread_join (Threads_Pointer[i], NULL);
-			if(FALSE!=thread_cancel){		//Esperar a que sean eliminados
-				perror("\n Not possible to join the Thread \n");
-			}
-			else{
-				perror("Succesfully Joined Thread");
-			}
-		}
-		if(FALSE==fclose(statesfd)){
-			perror("Log Succesfully closed");
-		}
-		else
-		{
-			perror("Error Closing the File");
-		}
-		exit(1);
-	}
-}
-
-// Thread to notify the user the status of the system
+// Thread to notify the user of the status of the system
 void* Check_thread (void*parmthread)
 {
 	while(1){
+		pthread_mutex_lock (&mutexprim);
+		pthread_mutex_lock (&mutexconsola);
+		pthread_mutex_lock (&mutexfile);
 		CurrentState(&prim);
+		pthread_mutex_unlock (&mutexfile);
+		pthread_mutex_unlock (&mutexconsola);
+		pthread_mutex_unlock (&mutexprim);
 		sleep(CHECK_INTERVAL);
 	}
 }
@@ -185,15 +218,20 @@ void* Check_thread (void*parmthread)
 void* Update_thread (void*parmthread)
 {
 	while(1){
-		primUpdates(&prim);
-		usleep(UPDATE_INTERVALU);
+		
+		sem_wait(&Update_sem);
+		pthread_mutex_lock (&mutexprim);
+		pthread_mutex_lock (&mutexconsola);
+		primControl(&prim);
+		pthread_mutex_unlock (&mutexconsola);
+		pthread_mutex_unlock (&mutexprim);
+		usleep(CONTROL_INTERVALU);
 	}
 }
 
 // Task to init the whole system
 int Init_All(void)
 {
-//
 	int error_check;
 	struct sigaction SIGINT_sa;
 	struct sigaction SIGTERM_sa;
@@ -211,7 +249,7 @@ int Init_All(void)
 		exit(ERROR_EXIT);
 	}
 	else{
-		perror("* ----Configuracion de SIGTERM ");
+		perror("* ------Configuracion de SIGTERM:");
 	}
 	
 	//SIGINT Signal Configuration 
@@ -224,7 +262,7 @@ int Init_All(void)
 		exit(ERROR_EXIT);
 	}
 	else{
-		perror("* ----Configuracion de SIGINT ");
+		perror("* ------Configuracion de SIGINT:");
 	}
 	
 	bloquearSign();
@@ -248,7 +286,7 @@ int Init_All(void)
 		return -1;
 	}
 	else{
-		perror("* Creation of Update FSM Thread ");
+		perror("* --Creation of Update FSM Thread:");
 	}
 	
 	//Creacion del "Thread State"
@@ -259,15 +297,20 @@ int Init_All(void)
 		return -1;
 	}
 	else{
-		perror("* Creation of Current State Thread ");
+		perror("* Creation of Current State Thread:");
 	}	
 	
 	desbloquearSign();	
 	while( true )
 	{	
-		primControl(&prim);
+		pthread_mutex_lock (&mutexprim);
+		pthread_mutex_lock (&mutexspi);
+		primUpdates(&prim);
+		pthread_mutex_unlock (&mutexspi);
+		pthread_mutex_unlock (&mutexprim);
+		sem_post(&Update_sem);
 		Kill_Them_All();
-		usleep(CONTROL_INTERVALU);
+		usleep(UPDATE_INTERVALU);
 	}
 	return-1;
 //	
@@ -276,43 +319,54 @@ int Init_All(void)
 // To turn on or off the LEDs according to the current state
 void LEDsON(char x,char y,char z)
 {
-	if(x==1)					// if x==1, then the Yellow LED is turned on,
+	if(x==1)					// if x,y,z==1, then the Yellow LED is turned on,
 		turnOn(YELLOW_LIGHT);	// is turned off
 	else if(x==0)
 		turnOff(YELLOW_LIGHT);
 
-	if(y==1)					// if y==1, then the Red LED is turned on,
-		turnOn(RED_LIGHT);		// is turned off
+	if(y==1)					
+		turnOn(RED_LIGHT);		
 	else if(y==0)
 		turnOff(RED_LIGHT);
 
-	if(z==1)					// if z==1, then the Green LED is turned on,
-		turnOn(GREEN_LIGHT);	// is turned off
+	if(z==1)					
+		turnOn(GREEN_LIGHT);	
 	else if(z==0)
 		turnOff(GREEN_LIGHT);
 
+}
+
+// Transition Timeout Verification
+bool Timeout_Polling(dprimario_t * prim)
+{
+	bool timeout=FALSE;
+	timeout = !(delayRead(&prim->delay));
+	return timeout;
 }
 
 // Whenever a change of state is made, it resets the transition conditions
 static void ResetChange(dprimario_t * prim)
 {
 	delayInit( &prim->delay,prim->timeout);  //Reset the timeout transition
-	FireComm.RF24DPReset();						 //Reset the UART Listening Process
-	prim->count=0;								 //Reset the count of number of cycles
-	prim->COMMFLAG=0;								 //Reset the UART flag
+	FireComm.RF24DPReset();					 //Reset the UART Listening Process
+	prim->count=0;							 //Reset the count of number of cycles
+	prim->COMMFLAG=0;						 //Reset the UART flag
 	
 }
 
 // To verify if we are stuck in the middle of a transition (PRE-STATE) or in a
 // waiting in a principal state (ALARM, NORMAL ,FAIL).
 static void PRESTUCK(dprimario_t * prim)
-{
-	if(delayRead(&prim->delay)){
+{		
+	if(!Timeout_Polling(prim))
+	{
 		if((prim->state==PREALARM)||(prim->state==PREFAIL)||
-			(prim->state==PRENORMAL)||(prim->state==PRE_ALARM_FAIL)){
+			(prim->state==PRENORMAL)||(prim->state==PRE_ALARM_FAIL))
+		{
+			//Timeout:present and State: PRE-XXXX directly to FAIL
 			if(prim->COMMFLAG){
 				prim->state = FAIL;
-				ResetChange(prim);
+				//ResetChange(prim);
 				prim->COMMFLAG=1;
 			}
 			else
@@ -321,39 +375,38 @@ static void PRESTUCK(dprimario_t * prim)
 				if(PRENORMAL==prim->state){
 					printf("\r\n No Event detected, Normal Mode On \r\n");
 					prim->state=NORMAL;
-					ResetChange(prim);
+					//ResetChange(prim);
 				}
 				else{
 					printf("\r\n No Additional Events detected, Out of Alarm Mode \r\n");
 					prim->state=PRENORMAL;
-					ResetChange(prim);
+					//ResetChange(prim);
 				}
 			}
 		}
 		else{
 			//Timeout transition limit reached
-				if(NORMAL==prim->state){
-					printf("\r\n Executing Normal Mode \r\n");
-					ResetChange(prim);
-				}
-				else{
+				if(NORMAL!=prim->state){
 					printf("\r\n No Additional Events detected, Out of Alarm Mode \r\n");
 					prim->state=PRENORMAL;
-					ResetChange(prim);
+					//ResetChange(prim);
 				}
 		}
+		ResetChange(prim);
 	}
 }
 
 // Verify the transition conditions related to pushbuttons
 dprim_state_t ButtonCheck(dprimario_t * prim, dprim_state_t eventcase,dprim_state_t casen,dprim_state_t Mode )
 {
+	bool state=FALSE;
 	dprim_state_t button_state;
-	
-	if(!delayRead(&prim->delay)){		//Verify if the Timeout transition limit
+
+	if(Timeout_Polling(prim)){		//Verify if the Timeout transition limit
 		if(Mode==ALARM)
 		{
-			if(get_State(&prim->boton1))
+			state = get_State(&prim->boton1);	
+			if(state)
 			{	//Button pressed?
 				button_state=eventcase;			//The New state is the Alarm related state
 			}
@@ -362,8 +415,10 @@ dprim_state_t ButtonCheck(dprimario_t * prim, dprim_state_t eventcase,dprim_stat
 				button_state=NO_STATE;
 			}
 		}
-		else if(Mode==FAIL){
-			if(get_State(&prim->boton2))
+		else if(Mode==FAIL)
+		{	
+			state = get_State(&prim->boton2);	
+			if(state)
 			{	//Button pressed?
 				button_state=eventcase;			//The New state is the Alarm related state
 			}
@@ -383,10 +438,12 @@ dprim_state_t ButtonCheck(dprimario_t * prim, dprim_state_t eventcase,dprim_stat
 // Verify the transition conditions related to uart codes
 dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t casef,dprim_state_t casen, dprim_state_t caseaf )
 {
+	int AUX;
 	dprim_state_t comm_state;	
-	if(!delayRead(&prim->delay)){		//Verify if the Timeout transition limit
+	
+	if(Timeout_Polling(prim)){		//Verify if the Timeout transition limit
 		if((FireComm.RF24DPRead()==Comm_received)){  //Was an Alarm code received?
-			int AUX=FireComm.Get_Code();
+			AUX=FireComm.Get_Code();
 			if(AUX==Alarm_Fail_Mode){
 				comm_state=caseaf;
 			}
@@ -399,6 +456,7 @@ dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t c
 			else if(AUX==Normal_Mode){
 				comm_state=casen;
 			}
+			
 			prim->COMMFLAG=1;							//Set the UART Flag interaction
 		}
 		else
@@ -471,7 +529,6 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			break;
 		}
 	}
-
 	if(Event){
 		if(error_detected==ERROR_DETECTED){
 			printf("\r\n ====== Unexpected Status ====== \r\n");
@@ -514,7 +571,6 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			//ResetChange(prim);
 		}
 		if(actual==prim->state){
-			printf(" RESET \r\n");
 			ResetChange(prim);
 		}
 		else if((PREALARM==prim->state)||(PREFAIL==prim->state)||(PRENORMAL==prim->state)||
@@ -528,11 +584,12 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 //update the MEFSs,
 void primUpdates(dprimario_t * pPrimario)
 {
-	PRESTUCK(pPrimario);
-    fsmUpdate(&pPrimario->boton1);			//Update of all the MEFSs involved
+	PRESTUCK(pPrimario);	
+    fsmUpdate(&pPrimario->boton1);					//Update of all the MEFSs involved
 	fsmUpdate(&pPrimario->boton2);
+	pPrimario->comm_status=FireComm.Comm_Status();	
 	FireComm.RF24DPUpdate(network);
-	pPrimario->comm_status=FireComm.Comm_Status();
+
 }
 
 // It sets initial conditions for the entire program
@@ -545,7 +602,7 @@ bool primInit(dprimario_t * pPrimario)
 	pPrimario->state=INITIAL_DEFAULT_STATE;
 	pPrimario->AlarmContact_state=INITIAL_DEFAULT_STATE;
 	pPrimario->FailContact_state=INITIAL_DEFAULT_STATE;
-	pPrimario->comm_state=INITIAL_DEFAULT_STATE;
+	pPrimario->comm_state=INITIAL_COMM_DEFAULT_STATE;
 	pPrimario->timeout= DEF_TIMEOUT;
 	delayInit( &pPrimario->delay,pPrimario->timeout);
 	gpioSet();

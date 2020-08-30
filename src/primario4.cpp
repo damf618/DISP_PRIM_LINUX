@@ -116,87 +116,91 @@ void timestamp(char * actualtime)
 void CurrentState(dprimario_t *prim)
 {
 	char CSTATE[50];
-		
-	statesfd = fopen("STATES_LOG.txt","a");
-	if (statesfd == NULL)
-	{
-		printf("Error opening the file: STATES_LOG.txt.\n");
-		while(true){}
-	}
-	
-	timestamp(CSTATE);
-	fprintf(statesfd,CSTATE, sizeof(CSTATE));
 
-	switch( prim->state )
-	{
-		case PRENORMAL:
-			printf("\r\n CURRENT STATE: PRE-NORMAL \r\n");
-			sprintf(CSTATE,"PRENORMAL\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-			break;
-		case PREALARM:
-			printf("\r\n CURRENT STATE: PRE-ALARM \r\n");
-			sprintf(CSTATE,"PREALARM\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-			break;
-		case PREFAIL:
-			printf("\r\n CURRENT STATE: PRE-FAIL \r\n");
-			sprintf(CSTATE,"PREFAIL\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-			break;
-		case PRE_ALARM_FAIL:
-			printf("\r\n CURRENT STATE: PRE ALARM/FAIL\r\n");
-			sprintf(CSTATE,"PRE_ALARM_FAIL\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-			break;
-		case NORMAL:
-			printf("\r\n CURRENT STATE: NORMAL \r\n");
-			sprintf(CSTATE,"NORMAL\n");
-			printf("%s\n",CSTATE);
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-			break;
-		case FAIL:
-			printf("\r\n CURRENT STATE: FAIL\r\n");
-			sprintf(CSTATE,"FAIL\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-			break;
-		case ALARM:
-			printf("\r\n CURRENT STATE: ALARM\r\n");
-			sprintf(CSTATE,"ALARM\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-			break;
-		case ALARM_FAIL:
-			printf("\r\n CURRENT STATE: ALARM/FAIL \r\n");
-			sprintf(CSTATE,"ALARM_FAIL\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-			break;
-		default:
-			printf("\r\n CURRENT STATE NOT DEFINED: %d\r\n",prim->state);
-			sprintf(CSTATE,"ERROR\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-	}
+	if((prim->previous_state!=prim->state)||(prim->previous_comm_state!=prim->comm_status)){	
+		prim->previous_state=prim->state;	
+		prim->previous_comm_state=prim->comm_status;
+		statesfd = fopen("STATES_LOG.txt","a");
+		do
+		{
+			printf("Error opening the file: STATES_LOG.txt.\n");
+			usleep(ERROR_INTERVALM);
+		}while(statesfd == NULL);
 	
-	if(OK==prim->comm_status)
-	{
-		sprintf(CSTATE,"COMM OK!\n");
-		fprintf(statesfd,CSTATE, sizeof(CSTATE));	
-	}
-	else if(ERROR==prim->comm_status)
-	{
-		sprintf(CSTATE,"COMM ERROR\n");
-		fprintf(statesfd,CSTATE, sizeof(CSTATE));	
-	}
-	else if(HOPPING==prim->comm_status)
-	{
-		sprintf(CSTATE,"CHANNEL HOPPING\n");
+		timestamp(CSTATE);
 		fprintf(statesfd,CSTATE, sizeof(CSTATE));
-	}
-	else if(FIXING==prim->comm_status)
-	{
-		sprintf(CSTATE,"COMM FIXING\n");
-		fprintf(statesfd,CSTATE, sizeof(CSTATE));
-	}
-	fclose(statesfd);	  
+
+		switch( prim->state )
+		{
+			case PRENORMAL:
+				printf("\r\n CURRENT STATE: PRE-NORMAL \r\n");
+				sprintf(CSTATE,"PRENORMAL\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				break;
+			case PREALARM:
+				printf("\r\n CURRENT STATE: PRE-ALARM \r\n");
+				sprintf(CSTATE,"PREALARM\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				break;
+			case PREFAIL:
+				printf("\r\n CURRENT STATE: PRE-FAIL \r\n");
+				sprintf(CSTATE,"PREFAIL\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				break;
+			case PRE_ALARM_FAIL:
+				printf("\r\n CURRENT STATE: PRE ALARM/FAIL\r\n");
+				sprintf(CSTATE,"PRE_ALARM_FAIL\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				break;
+			case NORMAL:
+				printf("\r\n CURRENT STATE: NORMAL \r\n");
+				sprintf(CSTATE,"NORMAL\n");
+				printf("%s\n",CSTATE);
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				break;
+			case FAIL:
+				printf("\r\n CURRENT STATE: FAIL\r\n");
+				sprintf(CSTATE,"FAIL\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				break;
+			case ALARM:
+				printf("\r\n CURRENT STATE: ALARM\r\n");
+				sprintf(CSTATE,"ALARM\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				break;
+			case ALARM_FAIL:
+				printf("\r\n CURRENT STATE: ALARM/FAIL \r\n");
+				sprintf(CSTATE,"ALARM_FAIL\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				break;
+			default:
+				printf("\r\n CURRENT STATE NOT DEFINED: %d\r\n",prim->state);
+				sprintf(CSTATE,"ERROR\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+		}
+	
+		if(OK==prim->comm_status)
+		{
+			sprintf(CSTATE,"COMM OK!\n");
+			fprintf(statesfd,CSTATE, sizeof(CSTATE));	
+		}
+		else if(ERROR==prim->comm_status)
+		{
+			sprintf(CSTATE,"COMM ERROR\n");
+			fprintf(statesfd,CSTATE, sizeof(CSTATE));	
+		}
+		else if(HOPPING==prim->comm_status)
+		{
+			sprintf(CSTATE,"CHANNEL HOPPING\n");
+			fprintf(statesfd,CSTATE, sizeof(CSTATE));
+		}
+		else if(FIXING==prim->comm_status)
+		{
+			sprintf(CSTATE,"COMM FIXING\n");
+			fprintf(statesfd,CSTATE, sizeof(CSTATE));
+		}
+		fclose(statesfd);
+	}	  
 }
 
 // Thread to notify the user of the status of the system
@@ -600,9 +604,10 @@ bool primInit(dprimario_t * pPrimario)
 		return 0;
 
 	pPrimario->state=INITIAL_DEFAULT_STATE;
+	pPrimario->previous_state=INITIAL_DEFAULT_STATE;
 	pPrimario->AlarmContact_state=INITIAL_DEFAULT_STATE;
 	pPrimario->FailContact_state=INITIAL_DEFAULT_STATE;
-	pPrimario->comm_state=INITIAL_COMM_DEFAULT_STATE;
+	pPrimario->previous_comm_state=INITIAL_COMM_DEFAULT_STATE;
 	pPrimario->timeout= DEF_TIMEOUT;
 	delayInit( &pPrimario->delay,pPrimario->timeout);
 	gpioSet();
@@ -658,4 +663,3 @@ bool primControl(dprimario_t * pPrimario)
 		}
 	return 1;
 }
-

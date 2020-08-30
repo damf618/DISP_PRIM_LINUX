@@ -29,49 +29,48 @@ firebase = firebase.FirebaseApplication('https://maestria1-24022020.firebaseio.c
 #print(contents)                  	  # print string contents
 #contents
 
-with open ("STATES_LOG.txt", 'rt') as myfile:  # Open lorem.txt for reading text
-    contents = myfile.read()              # Read the entire file to a string
-print(contents)                           # Print the string
+#Asumimos que la estructura ya fue declarada dentro del sistema. 
 
-with open ("STATES_LOG.txt", 'rt') as myfile:  # Open lorem.txt for reading
-    for myline in myfile:              # For each line, read to a string,
-        print(myline)                  # and print the string.
+def LastNlines(fname, N, data): 
+	del data[:]
+	with open(fname) as file: 
+		for line in (file.readlines() [-N:]):
+			data.append(line)
+	return True
+			
 
-mylines =[]
-with open ("STATES_LOG.txt", 'rt') as myfile:  # Open lorem.txt for reading
-    for myline in myfile:              # For each line, read to a string,
-		mylines.append(myline)
+fname= "STATES_LOG.txt"
+N = 3
+Refresh_data=[]
 
-print("PRUEBA 1")    
-print(myline)
+while(True):
+	reading=False
+	try: 
+		reading=LastNlines(fname, N, Refresh_data) 
+	except: 
+		print("Error Abriendo archivo")
+	
+	if(reading==True):
+		try:
+			data =  { 
+					'RFDSecundario': Refresh_data[2],
+					}
+			result = firebase.patch('/SISTEMA DE DETECCION INCENDIO DAMF/COM_RF',data)
+			print(result)
 
-print("PRUEBA 2")
-print(myline[0]) 
-print(myline[1])
-print(myline[2])
-print(myline[3])
+			data =  { 
+					'Reciente': Refresh_data[0],
+					}
+			result = firebase.patch('/SISTEMA DE DETECCION INCENDIO DAMF/Conexion_Reciente',data)
+			print(result)
 
-print("PRUEBA 3")
-print(mylines[0])
-print(mylines[1])
-
-data =  { 'Extra': 'TRUE',
-          'RFDSecundario': 'TRUE',
-          }
-result = firebase.patch('/SISTEMA_PRUEBA_RPI/COMRF',data)
-print(result)
-
-
-data =  { 'Alarma': 'TRUE',
-          'Extra': 'FALSE',
-		  'Falla': 'FALSE',
-          }
-result = firebase.patch('/SISTEMA_PRUEBA_RPI/Contactos',data)
-print(result)
-
-
-data =  { 'Alarma': 'TRUE',
-          'Falla': 'TRUE',
-          }
-result = firebase.patch('/SISTEMA_PRUEBA_RPI/PROPIOS',data)
-print(result)
+			data =  { 'Estado': Refresh_data[1],
+					}
+			result = firebase.patch('/SISTEMA DE DETECCION INCENDIO DAMF/Estado_Local',data)
+			print(result)
+			t.sleep(0.5)
+		except:
+			print("No new Data Available")
+			t.sleep(1)
+	else:
+		t.sleep(0.1)

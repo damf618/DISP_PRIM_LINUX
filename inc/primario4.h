@@ -65,6 +65,7 @@ extern "C" {
 #define CHECK_INTERVAL 1
 #define UPDATE_INTERVALU 30000
 #define CONTROL_INTERVALU 60000
+#define ERROR_INTERVALM 150000
 
 /*=====[Public function-like macros]=========================================*/
 
@@ -86,10 +87,11 @@ typedef struct{
 	uint8_t count;			//Count of Cycles.
 	bool COMMFLAG;		//Flag for UART interaction 1 ON, 0 OFF
 	bool TEST_MODE;		//Flag for defining TEST mode
-	comm_state_t comm_state;
 	dprim_state_t AlarmContact_state;
 	dprim_state_t FailContact_state;
 	int comm_status;
+	dprim_state_t previous_state;
+	int previous_comm_state;
 
 }dprimario_t;
 

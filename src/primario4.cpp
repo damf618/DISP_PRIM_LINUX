@@ -528,6 +528,12 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 		case PRENORMAL:
 			printf("\r\n Normal Comm Signal \r\n");
 			break;
+		case ALARM_FAIL:
+			printf("\r\n Alarm_Fail Comm Signal \r\n");
+			break;
+		case PRE_ALARM_FAIL:
+			printf("\r\n Alarm_Fail Comm Signal \r\n");
+			break;		
 		default:
 			printf("\r\n Unexpected Comm Signal \r\n");
 			break;

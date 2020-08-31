@@ -1,35 +1,21 @@
 from firebase import firebase
+import threading
+import subprocess
 import time as t
 
 firebase = firebase.FirebaseApplication('https://maestria1-24022020.firebaseio.com/', None)
+fname= "STATES_LOG.txt"
+N = 3
+Refresh_data=[]
 
-#data =  { 'Extra': 'FALSE',
-#          'RFDSecundario': 'FALSE',
-#          }
-#result = firebase.post('/SISTEMA_PRUEBA_RPI/COMRF',data)
-#print(result)
-
-#data =  { 'Alarma': 'TRUE',
-#          'Extra': 'TRUE',
-#		  'Falla': 'TRUE',
-#          }
-#result = firebase.post('/SISTEMA_PRUEBA_RPI/Contactos',data)
-#print(result)
-
-#data =  { 'Alarma': 'FALSE',
-#          'Falla': 'FALSE',
-#          }
-#result = firebase.post('/SISTEMA_PRUEBA_RPI/PROPIOS',data)
-#print(result)
-
-
-#myfile = open("STATES_LOG.txt", "rt") # open lorem.txt for reading text
-#contents = myfile.read()         	  # read the entire file to string
-#myfile.close()                   	  # close the file
-#print(contents)                  	  # print string contents
-#contents
-
-#Asumimos que la estructura ya fue declarada dentro del sistema. 
+class myThread (threading.Thread):
+   def __init__(self, threadID, name):
+      threading.Thread.__init__(self)
+      self.threadID = threadID
+      self.name = name
+   def run(self):
+      print "Starting " + self.name
+      subprocess.call("./DISP_PRIM")
 
 def LastNlines(fname, N, data): 
 	del data[:]
@@ -37,18 +23,18 @@ def LastNlines(fname, N, data):
 		for line in (file.readlines() [-N:]):
 			data.append(line)
 	return True
+	
+
+thread1 = myThread(1, "Dispositivo Secundario")
+thread1.start()
 			
-
-fname= "STATES_LOG.txt"
-N = 3
-Refresh_data=[]
-
 while(True):
 	reading=False
 	try: 
 		reading=LastNlines(fname, N, Refresh_data) 
 	except: 
-		print("Error Abriendo archivo")
+		#print("Error Abriendo archivo")
+		reading=False
 	
 	if(reading==True):
 		try:
@@ -56,21 +42,21 @@ while(True):
 					'RFDSecundario': Refresh_data[2],
 					}
 			result = firebase.patch('/SISTEMA DE DETECCION INCENDIO DAMF/COM_RF',data)
-			print(result)
+			#print(result)
 
 			data =  { 
 					'Reciente': Refresh_data[0],
 					}
 			result = firebase.patch('/SISTEMA DE DETECCION INCENDIO DAMF/Conexion_Reciente',data)
-			print(result)
+			#print(result)
 
 			data =  { 'Estado': Refresh_data[1],
 					}
 			result = firebase.patch('/SISTEMA DE DETECCION INCENDIO DAMF/Estado_Local',data)
-			print(result)
+			#print(result)
 			t.sleep(0.5)
 		except:
-			print("No new Data Available")
+			#print("No new Data Available")
 			t.sleep(1)
 	else:
 		t.sleep(0.1)

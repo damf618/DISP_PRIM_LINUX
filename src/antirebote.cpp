@@ -63,22 +63,31 @@ void fsmUpdate( void );
 void fsmInit(antirebote_t * pbutton, char boton)
 {
 	pbutton->flag=0;
-	pbutton->fsmState = DOWN;   // Set initial state
+	pbutton->fsmState = UP;   // Set initial state
 	pbutton->button= boton;
 
 }
 
 // It sets the Released Flag On, and makes the transition to the next state.
-void fsmReleased( antirebote_t * pbutton )
+void fsmPressed( antirebote_t * pbutton )
 {
 	pbutton->fsmState = DOWN;   // Set next state
 	pbutton->flag=1;		  // Button released flag
 }
 
+// It sets the Released Flag On, and makes the transition to the next state.
+void fsmReleased( antirebote_t * pbutton )
+{
+	pbutton->fsmState = UP;   // Set next state
+	pbutton->flag=0;		  // Button released flag
+}
+
+
 // It returns high if the button was released
 bool get_State( antirebote_t * pbutton )
 {
-	if(pbutton->flag==0)	 //
+   /*
+	if(0==pbutton->flag)	 //
 		return 0;
 	else {
 		if(pbutton->fsmState != DOWN){
@@ -86,6 +95,8 @@ bool get_State( antirebote_t * pbutton )
 		}
 		return 1;
 	}
+   * */
+   return pbutton->flag;
 }
 
 // FSM Update State Function,
@@ -95,7 +106,7 @@ void fsmUpdate( antirebote_t * pbutton )
    switch( pbutton->fsmState ){
 
       case INIT:						//	INITIAL STATE
-    	  pbutton->fsmState=DOWN;
+    	  pbutton->fsmState=UP;
       break;
 
       case DOWN:							//	UP STATE
@@ -116,8 +127,7 @@ void fsmUpdate( antirebote_t * pbutton )
          /* CHECK TRANSITION CONDITIONS */
     	 if(delayRead(&pbutton->delay)){
     		 if(!gpioRead( pbutton->button )){
-    			 pbutton->fsmState = DOWN;
-    			 fsmReleased(pbutton);
+    			 fsmPressed(pbutton);
     		 	 delayWrite(&pbutton->delay,WAITING_TIME);
     		 }
      		 else{
@@ -145,7 +155,7 @@ void fsmUpdate( antirebote_t * pbutton )
          /* CHECK TRANSITION CONDITIONS */
     	  if(delayRead(&pbutton->delay)){
     		  if(gpioRead( pbutton->button )){
-     			 pbutton->fsmState = UP;
+     			 fsmReleased(pbutton);
      			 delayWrite(&pbutton->delay,WAITING_TIME);
      		 }
      		 else{

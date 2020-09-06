@@ -13,8 +13,10 @@ int Lectura_Mesh(RF24Network& netw ){
 	if(netw.available()){
 		RF24NetworkHeader header;
 		netw.peek(header);
+		netw.read(header,&dat,sizeof(dat));
+		/*
 		switch(header.type){
-		// Display the incoming millis() values from the sensor nodes
+		// Display the code received from the secundary nodes
 		case 'M': netw.read(header,&dat,sizeof(dat)); 
 			printf("Rcv %u from 0%o\n",dat,header.from_node);
 	        break;
@@ -22,6 +24,8 @@ int Lectura_Mesh(RF24Network& netw ){
 	        printf("Rcv bad type %d from 0%o\n",header.type,header.from_node); 
 	        break;
 		}
+		* */
+		
 	}
 	return dat;
 }
@@ -145,14 +149,18 @@ ReceiveOrTimeoutState_t RF24DP :: Wait_for_Code (RF24Network& netw){
 			case RECEIVE_RECEIVED_OK:
 				error=0;
 				hopping=0;
+				Receiver.state = RECEIVE_CONFIG;
+				/*
 				delayInit( &(Receiver.delay), NORMALIZATION_TIME );
 				//Transcurrir el tiempo de Normalization 
 				if(delayRead(&(Receiver.delay)))
-					Receiver.state = RECEIVE_CONFIG;				
+				{
+					printf("\r\n Delay Start Up \r\n");
+					Receiver.state = RECEIVE_CONFIG;
+				}*/				
 				break;
 
 			case RECEIVE_TIMEOUT:
-				//printf("\r\n Timeout Error \r\n");
 				RF24ErrorManage();
 				Receiver.state = RECEIVE_CONFIG;
 				break;

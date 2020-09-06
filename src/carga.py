@@ -1,32 +1,11 @@
-from firebase import firebase
-import threading
-import subprocess
-import time as t
-
-firebase = firebase.FirebaseApplication('https://maestria1-24022020.firebaseio.com/', None)
-fname= "STATES_LOG.txt"
-N = 3
-Refresh_data=[]
-
-class myThread (threading.Thread):
-   def __init__(self, threadID, name):
-      threading.Thread.__init__(self)
-      self.threadID = threadID
-      self.name = name
-   def run(self):
-      print "Starting " + self.name
-      subprocess.call("./DISP_PRIM")
-
 def LastNlines(fname, N, data): 
 	del data[:]
 	with open(fname) as file: 
 		for line in (file.readlines() [-N:]):
 			data.append(line)
 	return True
-	
-thread1 = myThread(1, "Dispositivo Secundario")
-thread1.start()
-			
+
+
 while(True):
 	reading=False
 	try: 

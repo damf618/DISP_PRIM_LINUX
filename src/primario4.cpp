@@ -121,11 +121,11 @@ void CurrentState(dprimario_t *prim)
 		prim->previous_state=prim->state;	
 		prim->previous_comm_state=prim->comm_status;
 		statesfd = fopen("STATES_LOG.txt","a");
-		do
+		while(statesfd == NULL)
 		{
 			printf("Error opening the file: STATES_LOG.txt.\n");
 			usleep(ERROR_INTERVALM);
-		}while(statesfd == NULL);
+		};
 	
 		timestamp(CSTATE);
 		fprintf(statesfd,CSTATE, sizeof(CSTATE));
@@ -203,10 +203,13 @@ void CurrentState(dprimario_t *prim)
 	}	  
 }
 
+//DESCOMENTAR
+
 // Thread to notify the user of the status of the system
 void* Check_thread (void*parmthread)
 {
 	while(1){
+		/*
 		pthread_mutex_lock (&mutexprim);
 		pthread_mutex_lock (&mutexconsola);
 		pthread_mutex_lock (&mutexfile);
@@ -214,6 +217,7 @@ void* Check_thread (void*parmthread)
 		pthread_mutex_unlock (&mutexfile);
 		pthread_mutex_unlock (&mutexconsola);
 		pthread_mutex_unlock (&mutexprim);
+		*/
 		sleep(CHECK_INTERVAL);
 	}
 }
@@ -222,14 +226,14 @@ void* Check_thread (void*parmthread)
 void* Update_thread (void*parmthread)
 {
 	while(1){
-		
 		sem_wait(&Update_sem);
-		pthread_mutex_lock (&mutexprim);
+		//pthread_mutex_lock (&mutexprim);
 		pthread_mutex_lock (&mutexconsola);
 		primControl(&prim);
 		pthread_mutex_unlock (&mutexconsola);
-		pthread_mutex_unlock (&mutexprim);
+		//pthread_mutex_unlock (&mutexprim);
 		usleep(CONTROL_INTERVALU);
+		//sleep(CONTROL_INTERVAL);
 	}
 }
 
@@ -379,62 +383,80 @@ static void PRESTUCK(dprimario_t * prim)
 				if(PRENORMAL==prim->state){
 					printf("\r\n No Event detected, Normal Mode On \r\n");
 					prim->state=NORMAL;
-					//ResetChange(prim);
 				}
 				else{
 					printf("\r\n No Additional Events detected, Out of Alarm Mode \r\n");
 					prim->state=PRENORMAL;
-					//ResetChange(prim);
 				}
 			}
 		}
 		else{
 			//Timeout transition limit reached
-				if(NORMAL!=prim->state){
+				//if(NORMAL!=prim->state){
+				if(prim->state==NORMAL){
+					printf("\r\n Normal Mode \r\n");
+				}	
+				else if((!prim->Fire_event)&&(!prim->Fail_event)){
 					printf("\r\n No Additional Events detected, Out of Alarm Mode \r\n");
 					prim->state=PRENORMAL;
-					//ResetChange(prim);
 				}
 		}
 		ResetChange(prim);
 	}
 }
 
+void ButtonUpdates(dprimario_t * prim){
+	bool state=FALSE;
+	if(Timeout_Polling(prim)){
+		state = get_State(&prim->boton1);		
+		prim->Fire_event=state;
+		state = get_State(&prim->boton2);
+		prim->Fail_event=state;
+	}
+}
+
 // Verify the transition conditions related to pushbuttons
 dprim_state_t ButtonCheck(dprimario_t * prim, dprim_state_t eventcase,dprim_state_t casen,dprim_state_t Mode )
 {
-	bool state=FALSE;
 	dprim_state_t button_state;
 
 	if(Timeout_Polling(prim)){		//Verify if the Timeout transition limit
+		
 		if(Mode==ALARM)
 		{
+			if(prim->Fire_event){
+			/*
 			state = get_State(&prim->boton1);	
 			if(state)
 			{	//Button pressed?
+			* */
 				button_state=eventcase;			//The New state is the Alarm related state
 			}
 			else
 			{
-				button_state=NO_STATE;
+				button_state=casen;
 			}
 		}
 		else if(Mode==FAIL)
 		{	
+			if(prim->Fail_event){
+			/*
 			state = get_State(&prim->boton2);	
 			if(state)
 			{	//Button pressed?
-				button_state=eventcase;			//The New state is the Alarm related state
+			* */
+			
+				button_state=eventcase;			//The New state is the Alarm related state	
 			}
 			else
 			{
-				button_state=NO_STATE;
+				button_state=casen;
 			}
 		}
 	}
 	else
 	{
-		button_state=casen;
+		button_state=NO_STATE;
 	}
 	return button_state;
 }
@@ -443,7 +465,7 @@ dprim_state_t ButtonCheck(dprimario_t * prim, dprim_state_t eventcase,dprim_stat
 dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t casef,dprim_state_t casen, dprim_state_t caseaf )
 {
 	int AUX;
-	dprim_state_t comm_state;	
+	dprim_state_t comm_state=NO_STATE;	
 	
 	if(Timeout_Polling(prim)){		//Verify if the Timeout transition limit
 		if((FireComm.RF24DPRead()==Comm_received)){  //Was an Alarm code received?
@@ -459,7 +481,11 @@ dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t c
 			}		
 			else if(AUX==Normal_Mode){
 				comm_state=casen;
+			}else
+			{
+				comm_state=casen;
 			}
+			
 			
 			prim->COMMFLAG=1;							//Set the UART Flag interaction
 		}
@@ -471,16 +497,95 @@ dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t c
 	return comm_state;	
 }		
 
+static Contact_state_t Local_Fire_Event(dprimario_t * prim,dprim_state_t casea,dprim_state_t casen){
+	Contact_state_t rtn=NO_EVENT;
+	dprim_state_t state=NO_STATE;
+	state = ButtonCheck(prim,casea,casen,ALARM);
+	
+	if(prim->Comm_Transition)
+	{
+		if(prim->Alarm_Transition)
+		{
+				prim->AlarmContact_state=casea;
+		}else
+		{
+			prim->AlarmContact_state=casen;
+		}
+	}
+	
+	if(state!=NO_STATE)
+	{
+		if((state!=casea)&&(state!=casen))
+		{
+			printf("\r\n Unexpected Alarm Signal \r\n");
+			rtn=EVENT_ERROR;
+		}
+		else
+		{		
+			if(state!=prim->AlarmContact_state)
+			{
+				prim->AlarmContact_state=state;
+				rtn=EVENT;
+			}
+		}
+	}
+	return rtn;
+	
+}
+
+//
+static Contact_state_t Local_Fail_Event(dprimario_t * prim,dprim_state_t casef,dprim_state_t casen){
+	Contact_state_t rtn=NO_EVENT;
+	dprim_state_t state=NO_STATE;
+	
+	if(prim->Comm_Transition)
+	{
+		if(prim->Fail_Transition)
+		{
+				prim->FailContact_state=casef;
+		}else
+		{
+			prim->FailContact_state=casen;
+		}
+	}
+
+	
+	state = ButtonCheck(prim,casef,casen,FAIL);
+	if(state!=NO_STATE)
+	{
+		if((state!=casef)&&(state!=casen)){
+			printf("\r\n Unexpected Fail Signal \r\n");
+			rtn=EVENT_ERROR;
+		}
+		else
+		{
+			if(state!=prim->FailContact_state)
+			{
+				prim->FailContact_state=state;
+				rtn=EVENT;
+			}	
+		}
+	}
+	return rtn;
+}
+
+
+
+//LOS EVENTOS EVITAN LA SUMA DE ESTADOS!, REVISAR!
+
 // Verify the 3 Uart Codes and the button state transitions
 static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t casef,dprim_state_t casen,dprim_state_t caseaf)
 {
 	dprim_state_t LocalA=NO_STATE;
 	dprim_state_t LocalF=NO_STATE;
 	dprim_state_t Comm=NO_STATE;
-	dprim_state_t actual=prim->state;
 	bool Event=0; 
+	bool Comm_Event=0;
 	bool error_detected=NO_ERROR;
+	Contact_state_t Failure_event= Local_Fail_Event(prim,casef, casen);
+	Contact_state_t Alarm_event=Local_Fire_Event(prim,casea,casen);
 	
+	/*
 	LocalA = ButtonCheck(prim,casea,casen,ALARM);
 	if(LocalA!=NO_STATE)
 	{
@@ -489,10 +594,34 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			error_detected=ERROR_DETECTED;
 		}
 		else{
-			printf("\r\n Local Alarm Signal \r\n");
-			Event=1;
+			if(LocalA!=prim->AlarmContact_state)
+			{
+				prim->AlarmContact_state=LocalA;
+				printf("\r\n Local Alarm Signal \r\n");
+				Event=1;
+			}
 		}
 	}
+	* */
+	switch(Alarm_event){
+		case NO_EVENT:
+			LocalA=prim->AlarmContact_state;
+			break;
+		case EVENT:
+			printf("\r\n Local Alarm Signal \r\n");
+			LocalA=prim->AlarmContact_state;
+			Event=1;
+			break;
+		case EVENT_ERROR:
+			printf("\r\n Unexpected Alarm Signal \r\n");
+			error_detected=ERROR_DETECTED;
+			break;
+		default:
+			printf("\r\n Local Alarm Error \r\n");
+			break;
+	}
+	
+	/*
 	LocalF = ButtonCheck(prim,casef,casen,FAIL);
 	if(LocalF!=NO_STATE)
 	{
@@ -501,76 +630,114 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			error_detected=ERROR_DETECTED;
 		}
 		else{
+			if(LocalF!=prim->FailContact_state)
+			{
+				prim->FailContact_state=LocalF;
+				printf("\r\n Local Fail Signal \r\n");
+				Event=1;
+			}
+		}
+	}
+	* */
+	switch(Failure_event){
+		case NO_EVENT:
+			LocalF=prim->FailContact_state;
+			break;
+		case EVENT:
 			printf("\r\n Local Fail Signal \r\n");
+			LocalF=prim->FailContact_state;
+			Event=1;
+			break;
+		case EVENT_ERROR:
+			printf("\r\n Unexpected Fail Signal \r\n");
+			error_detected=ERROR_DETECTED;
+			break;
+		default:
+			printf("\r\n Local Fail Error \r\n");
+			break;
+	}
+	if(prim->comm_status==OK)
+	{
+		Comm=CommCheck(prim,casea,casef,casen,caseaf);
+		if(Comm!=NO_STATE)
+		{
+			if(Comm!=prim->Comm_Alarm_state){
+				prim->Comm_Alarm_state=Comm;
+				Event=1;
+				Comm_Event=1;
+				
+				switch(Comm)
+				{
+					case ALARM:
+						printf("\r\n Alarm Comm Signal \r\n");
+						break;
+						case PREALARM:
+						printf("\r\n Alarm Comm Signal \r\n");
+						break;
+					case FAIL:
+						printf("\r\n Fail Comm Signal \r\n");
+						break;
+					case PREFAIL:
+						printf("\r\n Fail Comm Signal \r\n");
+						break;
+					case NORMAL:
+						printf("\r\n Normal Comm Signal \r\n");
+						break;
+					case PRENORMAL:
+						printf("\r\n Normal Comm Signal \r\n");
+						break;
+					case ALARM_FAIL:
+						printf("\r\n Alarm_Fail Comm Signal \r\n");
+						break;
+					case PRE_ALARM_FAIL:
+						printf("\r\n Alarm_Fail Comm Signal \r\n");
+						break;		
+					default:
+						printf("\r\n Unexpected Comm Signal \r\n");
+						error_detected=ERROR_DETECTED;
+						break;
+				}
+			}
+		}
+	}else
+	{
+		Comm=casen;
+		if(Comm!=prim->Comm_Alarm_state){
+			prim->Comm_Alarm_state=Comm;
 			Event=1;
 		}
 	}
-	Comm=CommCheck(prim,casea,casef,casen,caseaf);
-	if(Comm!=NO_STATE)
+	
+	//Manejo del Evento
+	if(Event)
 	{
-		Event=1;
-		switch(Comm){
-		case ALARM:
-			printf("\r\n Alarm Comm Signal \r\n");
-			break;
-		case PREALARM:
-			printf("\r\n Alarm Comm Signal \r\n");
-			break;
-		case FAIL:
-			printf("\r\n Fail Comm Signal \r\n");
-			break;
-		case PREFAIL:
-			printf("\r\n Fail Comm Signal \r\n");
-			break;
-		case NORMAL:
-			printf("\r\n Normal Comm Signal \r\n");
-			break;
-		case PRENORMAL:
-			printf("\r\n Normal Comm Signal \r\n");
-			break;
-		case ALARM_FAIL:
-			printf("\r\n Alarm_Fail Comm Signal \r\n");
-			break;
-		case PRE_ALARM_FAIL:
-			printf("\r\n Alarm_Fail Comm Signal \r\n");
-			break;		
-		default:
-			printf("\r\n Unexpected Comm Signal \r\n");
-			break;
-		}
-	}
-	if(Event){
-		if(error_detected==ERROR_DETECTED){
+		if(error_detected==ERROR_DETECTED)
+		{
 			printf("\r\n ====== Unexpected Status ====== \r\n");
 			printf(" Error Description \r\n");
 			printf(" State:%d\r\n  LocalA:%d\r\n LocalF:%d\r\n  Comm:%d\r\n",prim->state,LocalA,LocalF,Comm);
 			prim->state=FAIL;
-			//ResetChange(prim);
 		}
 		else if(((LocalA==casea)&&(LocalF==casef)) || (Comm==caseaf) || ((LocalA==casea)&&(Comm==casef)) || ((LocalF==casef)&&(Comm==casea)) )
 		{
 			prim->state=caseaf;
 			printf("\r\n ====== Alarm-Fail Status ====== \r\n");
-			//ResetChange(prim);
 		}
 		else if((LocalA==casea) || (Comm==casea))
 		{
 			prim->state=casea;
 			printf("\r\n ====== Alarm Status ====== \r\n");
-			//ResetChange(prim);
 		}
 		else if((LocalF==casef) || (Comm==casef))
 		{
 			prim->state=casef;
 			printf("\r\n ====== Fail Status ====== \r\n");
-			//ResetChange(prim);
 		}
 		else if((((LocalA==casen)||(LocalA==NO_STATE))&&
 			((LocalF==casen)||(LocalF==NO_STATE)))||(Comm==casen))
 		{
 			prim->state=casen;
 			printf("\r\n ====== Normal Status ====== \r\n");
-			//ResetChange(prim);
 		}
 		else
 		{
@@ -578,18 +745,50 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			printf(" Error Description \r\n");
 			printf(" State:%d\r\n  LocalA:%d\r\n LocalF:%d\r\n  Comm:%d\r\n",prim->state,LocalA,LocalF,Comm);
 			prim->state=FAIL;
-			//ResetChange(prim);
 		}
-		if(actual==prim->state){
+		
+		if (Comm_Event)
+		{
 			ResetChange(prim);
+			prim->Comm_Transition=1;
+			if(prim->Fire_event){
+				prim->Alarm_Transition=1;
+			}else
+			{
+				prim->Alarm_Transition=0;
+			}
+			if(prim->Fail_event){
+				prim->Fail_Transition=1;
+			}else
+			{
+				prim->Fail_Transition=0;
+			}
 		}
+		else
+		{
+			prim->Comm_Transition=0;
+		}
+		/*
+		if(EVENT==Alarm_event){
+			prim->FailContact_state;
+		}
+		else if(){
+			prim->FailContact_state;
+		}
+		*/
+		
+		
+		
+		/*
 		else if((PREALARM==prim->state)||(PREFAIL==prim->state)||(PRENORMAL==prim->state)||
-			(PRE_ALARM_FAIL==prim->state)){
+			(PRE_ALARM_FAIL==prim->state))
+		{
 			ResetChange(prim);
 		}
+		*/
 	}
-	
-}
+	printf("Comm: %d\n",prim->Comm_Alarm_state);
+}	
 
 //update the MEFSs,
 void primUpdates(dprimario_t * pPrimario)
@@ -599,7 +798,8 @@ void primUpdates(dprimario_t * pPrimario)
 	fsmUpdate(&pPrimario->boton2);
 	pPrimario->comm_status=FireComm.Comm_Status();	
 	FireComm.RF24DPUpdate(network);
-
+	ButtonUpdates(pPrimario);
+	
 }
 
 // It sets initial conditions for the entire program
@@ -613,6 +813,11 @@ bool primInit(dprimario_t * pPrimario)
 	pPrimario->previous_state=INITIAL_DEFAULT_STATE;
 	pPrimario->AlarmContact_state=INITIAL_DEFAULT_STATE;
 	pPrimario->FailContact_state=INITIAL_DEFAULT_STATE;
+	pPrimario->Fire_event = 0;
+	pPrimario->Fail_event = 0;
+	pPrimario->Alarm_Transition = 0;
+	pPrimario->Fail_Transition = 0;
+	pPrimario->Comm_Transition=0;
 	pPrimario->previous_comm_state=INITIAL_COMM_DEFAULT_STATE;
 	pPrimario->timeout= DEF_TIMEOUT;
 	delayInit( &pPrimario->delay,pPrimario->timeout);
@@ -638,15 +843,15 @@ bool primControl(dprimario_t * pPrimario)
 
 		case NORMAL:
 			LEDsON(0,0,1);
-			FullCheck (pPrimario,PREALARM,PREFAIL,NORMAL,ALARM_PREFAIL);
+			FullCheck (pPrimario,PREALARM,PREFAIL,NORMAL,PRE_ALARM_FAIL);
 			break;
 		case ALARM:
 			LEDsON(0,1,0);
-			FullCheck (pPrimario,ALARM,PREFAIL,PRENORMAL,ALARM_PREFAIL);
+			FullCheck (pPrimario,ALARM,PREFAIL,PRENORMAL,PRE_ALARM_FAIL);
 			break;
 		case FAIL:
 			LEDsON(1,0,0);
-			FullCheck (pPrimario,PREALARM,FAIL,PRENORMAL,ALARM_PREFAIL);
+			FullCheck (pPrimario,PREALARM,FAIL,PRENORMAL,PRE_ALARM_FAIL);
 			break;
 		case ALARM_FAIL:
 			LEDsON(1,1,0);
@@ -659,9 +864,9 @@ bool primControl(dprimario_t * pPrimario)
 			FullCheck (pPrimario,ALARM,PREFAIL,PRENORMAL,ALARM);	//RESPONDO PRIMERO ANTE LA ALARMA 
 			break;
 		case PREFAIL:
-			FullCheck (pPrimario,PREALARM,FAIL,PRENORMAL,ALARM_PREFAIL);
+			FullCheck (pPrimario,PREALARM,FAIL,PRENORMAL,PRE_ALARM_FAIL);
 			break;
-		case ALARM_PREFAIL:
+		case PRE_ALARM_FAIL:
 			FullCheck (pPrimario,ALARM,FAIL,PRENORMAL,ALARM_FAIL);
 			break;
 		default:

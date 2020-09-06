@@ -209,7 +209,7 @@ void CurrentState(dprimario_t *prim)
 void* Check_thread (void*parmthread)
 {
 	while(1){
-		/*
+		
 		pthread_mutex_lock (&mutexprim);
 		pthread_mutex_lock (&mutexconsola);
 		pthread_mutex_lock (&mutexfile);
@@ -217,7 +217,7 @@ void* Check_thread (void*parmthread)
 		pthread_mutex_unlock (&mutexfile);
 		pthread_mutex_unlock (&mutexconsola);
 		pthread_mutex_unlock (&mutexprim);
-		*/
+		
 		sleep(CHECK_INTERVAL);
 	}
 }
@@ -787,7 +787,7 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 		}
 		*/
 	}
-	printf("Comm: %d\n",prim->Comm_Alarm_state);
+
 }	
 
 //update the MEFSs,

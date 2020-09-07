@@ -65,7 +65,6 @@ extern "C" {
 #define CHECK_INTERVAL 1
 #define UPDATE_INTERVALU 15000
 #define CONTROL_INTERVALU 60000
-//#define CONTROL_INTERVAL 1
 #define ERROR_INTERVALM 150000
 
 /*=====[Public function-like macros]=========================================*/

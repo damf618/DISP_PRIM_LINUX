@@ -142,9 +142,6 @@ void timestamp(char * actualtime)
     sprintf(actualtime,asctime(localtime(&ltime)));
 }
 
-
-//ARCHIVO COMO UN DEFINE #DEFINE LOG_FILE "STATES_LOG.txt"
-
 // Notification of the users and update of the Log files 
 /** This function is in charge of the update of the system, it prints on the console the
  * current state of the system and also if there was a change of state between calls, it 
@@ -266,10 +263,6 @@ void* Check_thread (void*parmthread)
 	}
 }
 
-
-//DESCOMENTAR EL MUTEX DE PRIM 
-//CAMBIAR A CONTROL THREAD
-
 // Thread 2/3 It calls the FSM of the system to process the updated information. 
 /** This thread executes the entire system logic, if there is any update on the inputs,
  * the new stage and actions will be executed from this Thread. it requires access to 
@@ -280,15 +273,15 @@ void* Check_thread (void*parmthread)
 	
 	@see timestamp, CurrentState
 **/
-void* Update_thread (void*parmthread)
+void* Control_thread (void*parmthread)
 {
 	while(1){
 		sem_wait(&Update_sem);
-		//pthread_mutex_lock (&mutexprim);
+		pthread_mutex_lock (&mutexprim);
 		pthread_mutex_lock (&mutexconsola);
 		primControl(&prim);
 		pthread_mutex_unlock (&mutexconsola);
-		//pthread_mutex_unlock (&mutexprim);
+		pthread_mutex_unlock (&mutexprim);
 		usleep(CONTROL_INTERVALU);
 		//sleep(CONTROL_INTERVAL);
 	}
@@ -304,7 +297,7 @@ void* Update_thread (void*parmthread)
 	@note Is called once from the main it continues until the the 2 possible Termination
 	Signals.
 	
-	@see Update_thread, Check_thread
+	@see Control_thread, Check_thread
 **/
 int Init_All(void)
 {
@@ -355,7 +348,7 @@ int Init_All(void)
 	fclose(statesfd);
 
 	//Creacion del Thread de Update
-	error_check = pthread_create (&Threads_Pointer[0], NULL,Update_thread, NULL);
+	error_check = pthread_create (&Threads_Pointer[0], NULL,Control_thread, NULL);
 	if (error_check) 
 	{
 		perror("Error during the creation of the Update FSM Thread");
@@ -452,9 +445,6 @@ static void ResetChange(dprimario_t * prim)
 	
 }
 
-
-//MAYBE WE COULD DELETE THE NORMAL TRANSITION PRINTS
-
 // To verify if we are stuck in the middle of a transition (PRE-STATE) or in a
 // waiting in a principal state (ALARM, NORMAL ,FAIL).
 /** There is a time limit to receive a Comm code, if the timeoput event is present 
@@ -495,7 +485,6 @@ static void PRESTUCK(dprimario_t * prim)
 		}
 		else{
 			//Timeout transition limit reached
-				//if(NORMAL!=prim->state){
 				if(prim->state==NORMAL){
 					printf("\r\n Normal Mode \r\n");
 				}	
@@ -551,11 +540,6 @@ dprim_state_t ButtonCheck(dprimario_t * prim, dprim_state_t eventcase,dprim_stat
 		if(Mode==ALARM)
 		{
 			if(prim->Fire_event){
-			/*
-			state = get_State(&prim->boton1);	
-			if(state)
-			{	//Button pressed?
-			* */
 				button_state=eventcase;			//The New state is the Alarm related state
 			}
 			else
@@ -565,13 +549,7 @@ dprim_state_t ButtonCheck(dprimario_t * prim, dprim_state_t eventcase,dprim_stat
 		}
 		else if(Mode==FAIL)
 		{	
-			if(prim->Fail_event){
-			/*
-			state = get_State(&prim->boton2);	
-			if(state)
-			{	//Button pressed?
-			* */
-			
+			if(prim->Fail_event){	
 				button_state=eventcase;			//The New state is the Alarm related state	
 			}
 			else
@@ -745,6 +723,10 @@ static Contact_state_t Local_Fail_Event(dprimario_t * prim,dprim_state_t casef,d
 	return rtn;
 }
 
+
+//IF THERE'S A CHANGE ON THE CONTACTS IT IGNORES THE COMM and change the state, then when the code is received the system updates. 
+
+
 // The full transition logic between states ishere. It Verifies the RF Codes, the Alarm and Fail Contact states to determine
 //the correct flow of actions
 /** The system has different inputs, the current state, the Alarm and Fail Contacts and
@@ -774,24 +756,6 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 	Contact_state_t Failure_event= Local_Fail_Event(prim,casef, casen);
 	Contact_state_t Alarm_event=Local_Fire_Event(prim,casea,casen);
 	
-	/*
-	LocalA = ButtonCheck(prim,casea,casen,ALARM);
-	if(LocalA!=NO_STATE)
-	{
-		if((LocalA!=casea)&&(LocalA!=casen)){
-			printf("\r\n Unexpected Alarm Signal \r\n");
-			error_detected=ERROR_DETECTED;
-		}
-		else{
-			if(LocalA!=prim->AlarmContact_state)
-			{
-				prim->AlarmContact_state=LocalA;
-				printf("\r\n Local Alarm Signal \r\n");
-				Event=1;
-			}
-		}
-	}
-	* */
 	switch(Alarm_event){
 		case NO_EVENT:
 			LocalA=prim->AlarmContact_state;
@@ -810,24 +774,6 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			break;
 	}
 	
-	/*
-	LocalF = ButtonCheck(prim,casef,casen,FAIL);
-	if(LocalF!=NO_STATE)
-	{
-		if((LocalF!=casef)&&(LocalF!=casen)){
-			printf("\r\n Unexpected Fail Signal \r\n");
-			error_detected=ERROR_DETECTED;
-		}
-		else{
-			if(LocalF!=prim->FailContact_state)
-			{
-				prim->FailContact_state=LocalF;
-				printf("\r\n Local Fail Signal \r\n");
-				Event=1;
-			}
-		}
-	}
-	* */
 	switch(Failure_event){
 		case NO_EVENT:
 			LocalF=prim->FailContact_state;
@@ -957,24 +903,6 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 		{
 			prim->Comm_Transition=0;
 		}
-		/*
-		if(EVENT==Alarm_event){
-			prim->FailContact_state;
-		}
-		else if(){
-			prim->FailContact_state;
-		}
-		*/
-		
-		
-		
-		/*
-		else if((PREALARM==prim->state)||(PREFAIL==prim->state)||(PRENORMAL==prim->state)||
-			(PRE_ALARM_FAIL==prim->state))
-		{
-			ResetChange(prim);
-		}
-		*/
 	}
 
 }	
@@ -1004,6 +932,12 @@ void primUpdates(dprimario_t * pPrimario)
 }
 
 // It sets initial conditions for the entire program
+/** This functions sets the initial conditions of the system, configures the GPIO,
+ *  Inits all the different FSM involved.   
+	
+	@param prim struct dprimario_t containing the entire variables needed fot the system. 
+	@see Init_All
+**/
 bool primInit(dprimario_t * pPrimario)
 {
 
@@ -1034,6 +968,14 @@ bool primInit(dprimario_t * pPrimario)
 
 // The MEFS logic, execute the actions related to the state
 // and verifies if there is any possible transition.
+/** This function sets the correct sequence of states, is the one that determines which 
+ * led turn on and which state should go in the presence of any event.   
+	
+	@param prim struct dprimario_t containing the entire variables needed fot the system. 
+	@note This FSM only stablihes which are the possible state to move to, but the decision
+	to move to one option is made by FullCheck 
+	@see Init_All, FullCheck
+**/
 bool primControl(dprimario_t * pPrimario)
 {
 

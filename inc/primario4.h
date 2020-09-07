@@ -63,8 +63,9 @@ extern "C" {
 #define UPDATE_Thread Threads_Pointer[0]
 #define CHECK_Thread Threads_Pointer[1]
 #define CHECK_INTERVAL 1
-#define UPDATE_INTERVALU 30000
+#define UPDATE_INTERVALU 15000
 #define CONTROL_INTERVALU 60000
+//#define CONTROL_INTERVAL 1
 #define ERROR_INTERVALM 150000
 
 /*=====[Public function-like macros]=========================================*/
@@ -72,9 +73,10 @@ extern "C" {
 /*=====[Definitions of public data types]====================================*/
 
 // Possible states for the MEFs
-typedef enum{ NORMAL , ALARM, FAIL,ALARM_FAIL, PRENORMAL, PREALARM, PREFAIL,ALARM_PREFAIL,PRE_ALARM_FAIL, NO_STATE} dprim_state_t;
+typedef enum{ NORMAL , ALARM, FAIL,ALARM_FAIL, PRENORMAL, PREALARM, PREFAIL,PRE_ALARM_FAIL, NO_STATE} dprim_state_t;
 
-// 
+typedef enum{ NO_EVENT, EVENT, EVENT_ERROR } Contact_state_t;
+
 typedef enum{ OK, ERROR, HOPPING, FIXING } comm_state_t;
 
 // Structure with the different data types to generate an independent Monitor
@@ -89,9 +91,15 @@ typedef struct{
 	bool TEST_MODE;		//Flag for defining TEST mode
 	dprim_state_t AlarmContact_state;
 	dprim_state_t FailContact_state;
+	dprim_state_t Comm_Alarm_state;
 	int comm_status;
 	dprim_state_t previous_state;
 	int previous_comm_state;
+	bool Fire_event;
+	bool Fail_event;
+	bool Alarm_Transition;
+	bool Fail_Transition;
+	bool Comm_Transition;
 
 }dprimario_t;
 

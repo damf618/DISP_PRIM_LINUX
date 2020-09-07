@@ -50,7 +50,7 @@ extern "C" {
 #define RETRIES_MAX_NUMBER 15			//How many retries before giving up, max 15*
 #define RETRIES_MAX_SPACING 15			//0 means 250us, 15 means 4000us, max 15*  
 
-#define NORMALIZATION_TIME 300			//min 300 possible time to send amessage after the reading.
+#define NORMALIZATION_TIME 10			//min 300 possible time to send amessage after the reading.
 #define RESET_TIME 5000					//MAX Time for stablish communication response.
 
 #define CHANNEL_ERROR_TOLERANCE 5

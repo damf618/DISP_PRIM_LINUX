@@ -34,8 +34,9 @@ pthread_mutex_t mutexconsola = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutexspi = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutexfile = PTHREAD_MUTEX_INITIALIZER;
 
-
 sem_t Update_sem; 
+sem_t Comm_error_sem; 
+
 
 FILE * statesfd;
 
@@ -225,7 +226,8 @@ void CurrentState(dprimario_t *prim)
 		else if(ERROR==prim->comm_status)
 		{
 			sprintf(CSTATE,"COMM ERROR\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));	
+			fprintf(statesfd,CSTATE, sizeof(CSTATE));
+			sem_post(&Comm_error_sem);	
 		}
 		else if(HOPPING==prim->comm_status)
 		{
@@ -241,7 +243,33 @@ void CurrentState(dprimario_t *prim)
 	}	  
 }
 
-// Thread 3/3 responsable to notify the user of the status of the system
+
+void File_Clean(const char * file_name){
+	FILE * aux;
+	aux = fopen(file_name, "w+");
+
+	if (aux == NULL) {
+		printf("Error cleaning the file: %s",file_name);
+		while(true){
+		}
+	}
+}
+
+// Thread 4/4FIXING in charge of Executing Maintenance Tasks when needed 
+void* RF_Maintenance_thread (void*parmthread)
+{
+	while(1){
+		sem_wait(&Comm_error_sem);
+		pthread_mutex_lock (&mutexspi);
+		pthread_mutex_lock (&mutexconsola);
+		File_Clean("dhcplist.txt");
+		FireComm.Maintenance_clean();
+		pthread_mutex_unlock (&mutexconsola);
+		pthread_mutex_unlock (&mutexspi);
+	}
+}
+
+// Thread 3/4 responsable to notify the user of the status of the system
 /** This thread is in charge of the update of the system, it requieres the use of the log
  * file, the console and the reads from the 'dprimario_t *' structure.
 	
@@ -263,7 +291,7 @@ void* Check_thread (void*parmthread)
 	}
 }
 
-// Thread 2/3 It calls the FSM of the system to process the updated information. 
+// Thread 2/4 It calls the FSM of the system to process the updated information. 
 /** This thread executes the entire system logic, if there is any update on the inputs,
  * the new stage and actions will be executed from this Thread. it requires access to 
  * the 'dprimario_t *' structure and console (For DEBUG).  
@@ -287,7 +315,7 @@ void* Control_thread (void*parmthread)
 	}
 }
 
-// Thread 1/3 to init the whole system/
+// Thread 1/4 to init the whole system/
 /** This thread starts the entire system, is in charge of set up the software properly to
  * work withthe resources of the Linux SO it creates the other 2 threads. After the full
  * setup it continues to be called periodically to update the state of all the inputs of the
@@ -344,6 +372,9 @@ int Init_All(void)
 		while(true){
 		}
 	}
+	
+	File_Clean("dhcplist.txt");
+	
 	fprintf(statesfd,"Inicializando Equipo\n");
 	fclose(statesfd);
 
@@ -368,6 +399,17 @@ int Init_All(void)
 	else{
 		perror("* Creation of Current State Thread:");
 	}	
+	
+	//Creacion del RF_Maintenance Thread
+	error_check = pthread_create (&Threads_Pointer[2], NULL,RF_Maintenance_thread, NULL);
+	if (error_check) 
+	{
+		perror("Error during the creation of the RF Maintenace Thread Thread");
+		return -1;
+	}
+	else{
+		perror("* --Creation of Update FSM Thread:");
+	}
 	
 	desbloquearSign();	
 	while( true )

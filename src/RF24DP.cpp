@@ -36,28 +36,42 @@ void RF24DP:: RF24ChannelHop(void){
 	Set_Channel(channels1[FireComm_Channel.ChannelCounter],MESH_TIME);
 	FireComm_Channel.ChannelCounter++;
 	if(FireComm_Channel.ChannelCounter>=3){
-		error=1;
+		fixing=1;
 		FireComm_Channel.ChannelCounter=0;
+	}
+	if((FireComm_Channel.ChannelCounter>=3)&&(fixing)){
+		error=1;
 	}
 	FireComm_Channel.ErrorCounter=0;
 	hopping=1;
 }	
 
+void RF24DP::Maintenance_clean(void){
+	error=0;
+	hopping=0;
+	fixing=0;
+}
+
 int RF24DP::Comm_Status(void){
 	int rtn=0;
 	
 	// OK      -> 0
-	// ERROR   -> 1
-	// HOPPING -> 2
-	// FIXING  -> 3
-	if(error)
+	// HOPPING -> 1
+	// FIXING  -> 2
+	// ERROR_RF   -> 3
+	if(hopping)
 	{
 		rtn=1;
 	}
-	if(hopping)
+	if(fixing)
 	{
-		rtn=rtn+2;
+		rtn=rtn+1;
 	}
+	if(fixing)
+	{
+		rtn=rtn+1;
+	}
+	
 	return rtn;
 
 }
@@ -147,17 +161,10 @@ ReceiveOrTimeoutState_t RF24DP :: Wait_for_Code (RF24Network& netw){
 				break;
 
 			case RECEIVE_RECEIVED_OK:
-				error=0;
+				fixing=0;
 				hopping=0;
-				Receiver.state = RECEIVE_CONFIG;
-				/*
-				delayInit( &(Receiver.delay), NORMALIZATION_TIME );
-				//Transcurrir el tiempo de Normalization 
-				if(delayRead(&(Receiver.delay)))
-				{
-					printf("\r\n Delay Start Up \r\n");
-					Receiver.state = RECEIVE_CONFIG;
-				}*/				
+				error=0;
+				Receiver.state = RECEIVE_CONFIG;				
 				break;
 
 			case RECEIVE_TIMEOUT:
@@ -183,12 +190,6 @@ void RF24DP::RF24DPUpdate(RF24Network& netw){
 	// In addition, keep the 'DHCP service' running on the master node so addresses will
 	// be assigned to the sensor nodes
 	DHCP();
-	/*if( !(Receiver.state != RECEIVE_RECEIVED_OK &&  //Asks if none of the timeout or received message events were reached.
-		             Receiver.state != RECEIVE_TIMEOUT ))
-	{
-		printf("\r\n NO UPDATE \r\n ");
-	}
-	**/
 	Receiver.state = Wait_for_Code( netw ); //Updates the MEF to receive the next byte.
 }
 

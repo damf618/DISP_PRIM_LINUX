@@ -2,6 +2,7 @@ from firebase import firebase
 import threading
 import subprocess
 import time as t
+import signal
 
 firebase = firebase.FirebaseApplication('https://maestria1-24022020.firebaseio.com/', None)
 fname= "STATES_LOG.txt"
@@ -13,9 +14,30 @@ class myThread (threading.Thread):
       threading.Thread.__init__(self)
       self.threadID = threadID
       self.name = name
+      self.shutdown_flag = threading.Event()
+
    def run(self):
-      print "Starting " + self.name
+
+      print ("Starting " + self.name)
       subprocess.call("./DISP_PRIM")
+      print('Thread #{}, {} stopped'.format(self.threadID,self.name))
+      self.shutdown_flag.set()
+      
+
+      
+
+class ServiceExit(Exception):
+    """
+    Custom exception which is used to trigger the clean exit
+    of all running threads and the main program.
+    """
+    pass
+
+
+def service_shutdown():
+    print('Closing signal Received')
+    raise ServiceExit()
+
 
 def LastNlines(fname, N, data): 
 	del data[:]
@@ -24,38 +46,31 @@ def LastNlines(fname, N, data):
 			data.append(line)
 	return True
 	
-thread1 = myThread(1, "Dispositivo Secundario")
-thread1.start()
-			
-while(True):
-	reading=False
-	try: 
-		reading=LastNlines(fname, N, Refresh_data) 
-	except: 
-		#print("Error Abriendo archivo")
-		reading=False
+def main():
+	print('Starting main program')
 	
-	if(reading==True):
+	thread1 = myThread(1, "Comunicacion RF")
+	thread1.start()
+	while not thread1.shutdown_flag.is_set():
 		try:
-			data =  { 
-					'RFDSecundario': Refresh_data[2],
-					}
+			reading=LastNlines(fname, N, Refresh_data)
+			data =  { 'RFDSecundario': Refresh_data[2],}
 			result = firebase.patch('/SISTEMA DE DETECCION INCENDIO DAMF/COM_RF',data)
-			#print(result)
-
-			data =  { 
-					'Reciente': Refresh_data[0],
-					}
+		    
+			data =  {'Reciente': Refresh_data[0],}
 			result = firebase.patch('/SISTEMA DE DETECCION INCENDIO DAMF/Conexion_Reciente',data)
-			#print(result)
-
-			data =  { 'Estado': Refresh_data[1],
-					}
+			    
+			data =  { 'Estado': Refresh_data[1],}
 			result = firebase.patch('/SISTEMA DE DETECCION INCENDIO DAMF/Estado_Local',data)
-			#print(result)
-			t.sleep(0.5)
+			    
+			t.sleep(0.5) 
 		except:
-			#print("No new Data Available")
-			t.sleep(1)
-	else:
-		t.sleep(0.5)
+			t.sleep(1.25)
+	print('Exiting main program')
+	thread1.join()
+ 
+ 
+if __name__ == '__main__':
+    main()
+	
+	

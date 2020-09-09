@@ -76,7 +76,7 @@ typedef enum{ NORMAL , ALARM, FAIL,ALARM_FAIL, PRENORMAL, PREALARM, PREFAIL,PRE_
 
 typedef enum{ NO_EVENT, EVENT, EVENT_ERROR } Contact_state_t;
 
-typedef enum{ OK, ERROR, HOPPING, FIXING } comm_state_t;
+typedef enum{ OK,HOPPING, FIXING, ERROR } comm_state_t;
 
 // Structure with the different data types to generate an independent Monitor
 typedef struct{

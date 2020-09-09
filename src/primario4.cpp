@@ -243,6 +243,7 @@ void CurrentState(dprimario_t *prim)
 	}	  
 }
 
+//COMENTAR
 
 void File_Clean(const char * file_name){
 	FILE * aux;
@@ -254,6 +255,8 @@ void File_Clean(const char * file_name){
 		}
 	}
 }
+
+//COMENTAR
 
 // Thread 4/4FIXING in charge of Executing Maintenance Tasks when needed 
 void* RF_Maintenance_thread (void*parmthread)

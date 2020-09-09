@@ -108,6 +108,7 @@ class RF24DP : public RF24Mesh	{
 		RF24MChannel_t FireComm_Channel;
 		bool error = 0;
 		bool hopping = 0;
+		bool fixing = 0;
 		
 	public:
 		
@@ -131,6 +132,7 @@ class RF24DP : public RF24Mesh	{
 		void RF24ErrorManage(void);
 		int Get_Code(void);
 		int Comm_Status(void);
+		void Maintenance_clean(void);
 };
 
 /*

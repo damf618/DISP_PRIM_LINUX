@@ -14,6 +14,45 @@ int Lectura_Mesh(RF24Network& netw ){
 		RF24NetworkHeader header;
 		netw.peek(header);
 		netw.read(header,&dat,sizeof(dat));
+		
+		/* bool Headers_CHeck(int node_address){
+		 * int i;
+		 * bool aux = 1;
+		 * for (i=0;i<=MAX DHCP;)
+		 * {	
+		 * 	if(node_address==HEADERS[i])
+		 * 	{
+		 * 		aux=0;
+		 * 		break;
+		 * 	}
+		 * }
+		 * return aux;
+		 * }
+		 * 
+		 * FSM Mejor!!
+		 * 
+		 * void Headers_Upload(int node_address){
+		 * 	if(Headers_Check(node_address){
+		 * 		header_count++;
+		 * 		HEADERS[header_count]=header.from_node;
+		 * 	}
+		 * }
+		 * 
+		 * if(header_count>1){
+		 *		if(!Headers_Check(node_address))
+		 * 			 
+		 * }
+		 * else{
+		 * //CODIGO NORMAL DE ARRIBA
+		 * }
+		 * else if(header_count>10){
+		 * error=1;
+		 * fixing=1;
+		 * hopping=1;
+		 * }
+		 * 
+		 * */
+		
 		/*
 		switch(header.type){
 		// Display the code received from the secundary nodes

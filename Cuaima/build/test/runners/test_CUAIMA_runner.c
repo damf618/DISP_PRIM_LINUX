@@ -79,11 +79,11 @@ static void run_test(UnityTestFunction func, const char* name, int line_num)
 int main(void)
 {
   UnityBegin("test_CUAIMA.c");
-  run_test(test_Recepcion_de_Codigo, "test_Recepcion_de_Codigo", 85);
-  run_test(test_No_Existe_y_lo_agrego_a_la_lista, "test_No_Existe_y_lo_agrego_a_la_lista", 105);
-  run_test(test_Update_de_Codigos, "test_Update_de_Codigos", 120);
-  run_test(test_Evaluacion_de_Diferentes_Codigos, "test_Evaluacion_de_Diferentes_Codigos", 148);
-  run_test(test_Alcanzo_el_limite_MAX_de_Devices, "test_Alcanzo_el_limite_MAX_de_Devices", 209);
+  run_test(test_Recepcion_de_Codigo, "test_Recepcion_de_Codigo", 89);
+  run_test(test_No_Existe_y_lo_agrego_a_la_lista, "test_No_Existe_y_lo_agrego_a_la_lista", 109);
+  run_test(test_Update_de_Codigos, "test_Update_de_Codigos", 124);
+  run_test(test_Evaluacion_de_Diferentes_Codigos, "test_Evaluacion_de_Diferentes_Codigos", 152);
+  run_test(test_Alcanzo_el_limite_MAX_de_Devices, "test_Alcanzo_el_limite_MAX_de_Devices", 207);
 
   return UnityEnd();
 }

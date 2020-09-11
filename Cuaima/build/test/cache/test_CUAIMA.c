@@ -157,7 +157,7 @@ void test_Recepcion_de_Codigo(void){
 
 ((void *)0)
 
-), (UNITY_UINT)(91), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(95), UNITY_DISPLAY_STYLE_INT);
 
 
 
@@ -171,7 +171,7 @@ void test_Recepcion_de_Codigo(void){
 
 ((void *)0)
 
-), (UNITY_UINT)(96), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(100), UNITY_DISPLAY_STYLE_INT);
 
 
 
@@ -185,7 +185,7 @@ void test_Recepcion_de_Codigo(void){
 
 ((void *)0)
 
-), (UNITY_UINT)(101), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(105), UNITY_DISPLAY_STYLE_INT);
 
 }
 
@@ -221,13 +221,13 @@ _Bool
 
 ((void *)0)
 
-), (UNITY_UINT)(115), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(119), UNITY_DISPLAY_STYLE_INT);
 
  UnityAssertEqualNumber((UNITY_INT)((n+1)), (UNITY_INT)((RF_List.counter)), (
 
 ((void *)0)
 
-), (UNITY_UINT)(116), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(120), UNITY_DISPLAY_STYLE_INT);
 
 }
 
@@ -281,9 +281,9 @@ _Bool
 
   sprintf(Text_ID,"Caso de Prueba Nro: %d",caso_actual);
 
-  UnityAssertEqualNumber((UNITY_INT)((654)), (UNITY_INT)((Mem_Block[0].RF_Code)), ((Text_ID)), (UNITY_UINT)(141), UNITY_DISPLAY_STYLE_INT);
+  UnityAssertEqualNumber((UNITY_INT)((654)), (UNITY_INT)((Mem_Block[0].RF_Code)), ((Text_ID)), (UNITY_UINT)(145), UNITY_DISPLAY_STYLE_INT);
 
-  UnityAssertEqualNumber((UNITY_INT)((1)), (UNITY_INT)((Mem_Block[0].updated)), ((Text_ID)), (UNITY_UINT)(142), UNITY_DISPLAY_STYLE_INT);
+  UnityAssertEqualNumber((UNITY_INT)((1)), (UNITY_INT)((Mem_Block[0].updated)), ((Text_ID)), (UNITY_UINT)(146), UNITY_DISPLAY_STYLE_INT);
 
  }
 
@@ -317,25 +317,13 @@ void test_Evaluacion_de_Diferentes_Codigos(void){
 
 ((void *)0)
 
-), (UNITY_UINT)(157), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(161), UNITY_DISPLAY_STYLE_INT);
 
  UnityAssertEqualNumber((UNITY_INT)((0)), (UNITY_INT)((RF_List.comm_incomplete)), (
 
 ((void *)0)
 
-), (UNITY_UINT)(158), UNITY_DISPLAY_STYLE_INT);
-
-
-
-
-
-
-
-
-
-
-
-
+), (UNITY_UINT)(162), UNITY_DISPLAY_STYLE_INT);
 
 
 
@@ -355,13 +343,13 @@ void test_Evaluacion_de_Diferentes_Codigos(void){
 
 ((void *)0)
 
-), (UNITY_UINT)(172), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(170), UNITY_DISPLAY_STYLE_INT);
 
  UnityAssertEqualNumber((UNITY_INT)((1)), (UNITY_INT)((RF_List.comm_incomplete)), (
 
 ((void *)0)
 
-), (UNITY_UINT)(173), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(171), UNITY_DISPLAY_STYLE_INT);
 
 
 
@@ -395,13 +383,13 @@ void test_Evaluacion_de_Diferentes_Codigos(void){
 
 ((void *)0)
 
-), (UNITY_UINT)(188), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(186), UNITY_DISPLAY_STYLE_INT);
 
  UnityAssertEqualNumber((UNITY_INT)((0)), (UNITY_INT)((RF_List.comm_incomplete)), (
 
 ((void *)0)
 
-), (UNITY_UINT)(189), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(187), UNITY_DISPLAY_STYLE_INT);
 
 
 
@@ -433,13 +421,13 @@ void test_Evaluacion_de_Diferentes_Codigos(void){
 
 ((void *)0)
 
-), (UNITY_UINT)(203), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(201), UNITY_DISPLAY_STYLE_INT);
 
  UnityAssertEqualNumber((UNITY_INT)((0)), (UNITY_INT)((RF_List.comm_incomplete)), (
 
 ((void *)0)
 
-), (UNITY_UINT)(204), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(202), UNITY_DISPLAY_STYLE_INT);
 
  printf("Nro de DISPOSITIVOS: %d\n",RF_List.counter);
 
@@ -487,12 +475,12 @@ _Bool
 
 ((void *)0)
 
-), (UNITY_UINT)(224), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(222), UNITY_DISPLAY_STYLE_INT);
 
  UnityAssertEqualNumber((UNITY_INT)((20)), (UNITY_INT)((RF_List.counter)), (
 
 ((void *)0)
 
-), (UNITY_UINT)(225), UNITY_DISPLAY_STYLE_INT);
+), (UNITY_UINT)(223), UNITY_DISPLAY_STYLE_INT);
 
 }

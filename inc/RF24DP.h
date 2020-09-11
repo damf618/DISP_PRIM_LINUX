@@ -14,6 +14,7 @@ extern "C" {
 #include "RF24Network.h"
 #include "RF24Mesh.h"
 #include "primario4.h"
+#include <Cuaima_Testing.h>
 
 #define MASTER_ID 0
 #define RF_DEFAULT_CHANNEL 120
@@ -38,6 +39,7 @@ extern "C" {
 #define FAIL_CODE 654
 #define ALARM_CODE 987
 #define ALARM_FAIL_CODE 258
+#define RESET_REQUEST 999
 
 #define OK_MSG 0
 #define ERROR_MSG 1
@@ -109,6 +111,8 @@ class RF24DP : public RF24Mesh	{
 		bool error = 0;
 		bool hopping = 0;
 		bool fixing = 0;
+		bool reset_request =0;
+		RF_List_t RF_List;
 		
 	public:
 		
@@ -133,6 +137,7 @@ class RF24DP : public RF24Mesh	{
 		int Get_Code(void);
 		int Comm_Status(void);
 		void Maintenance_clean(void);
+		void Clean_RFDevices();
 };
 
 /*

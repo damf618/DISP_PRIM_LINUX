@@ -11,8 +11,10 @@
  *
  **===== Casos de Prueba ---¡PENDIENTES!---=====
  *    
- * Como gestionar la recepcion? uabdi ductar el estado? While un tiempo esperar... si 
- * se mantiene incomplete..... Dictamosoun estado y modificamosel estado aINCOMPLETE 
+ * Como gestionar la recepcion? cuando dictar el estado? While un tiempo esperar... si 
+ * se mantiene incomplete..... Dictamoso un estado y modificamos el estado aINCOMPLETE 
+ * 
+ * FSM
  * 
 */
 
@@ -158,13 +160,7 @@ void test_Evaluacion_de_Diferentes_Codigos(void){
 	result=Comm_Code(&RF_List);
 	TEST_ASSERT_EQUAL(NORMAL_CODE,result);	// --> Prueba de Transicion Correcta de Estado
 	TEST_ASSERT_EQUAL(0,RF_List.comm_incomplete);	// --> Prueba de Transicion Correcta de Estado
-	/*		
-	for(k=0;k<RF_List.counter;k++)
-	{
-		Mem_Block=RF_List.RF_Devices[k];
-		Header_Validation(Mem_Block[0].Node_ID,Mem_Block[0].RF_Code,&RF_List);
-	}
-	*/
+	
 	header_from=11;
 	Code=FAIL_CODE;
 	

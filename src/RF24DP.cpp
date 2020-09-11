@@ -5,71 +5,176 @@
 #include "RF24Mesh.h"					// BIBLIOTECA DE RF24 POR TMRH20
 #include <RF24DP.h>
 #include <delay.h>
+#include <Cuaima_Testing.h>
 
 uint8_t channels1[3] = {117,120,122};
 
-int Lectura_Mesh(RF24Network& netw ){
+static bool Insert(int id, int Code,RF_List_t* RF_List){
+	
+	RF_Device_t * Mem_Block;
+	Mem_Block = (RF_Device_t *)malloc(sizeof(RF_Device_t));
+	bool rtn=0;
+	
+	if(RF_List->counter<MAX_RF_DEVICES)
+	{
+		if(NULL!=Mem_Block)
+		{
+			Mem_Block[0].Node_ID=id;
+			Mem_Block[0].RF_Code=Code;
+			Mem_Block[0].updated=1;
+			RF_List->RF_Devices[RF_List->counter]=Mem_Block;
+			RF_List->counter++;
+			rtn=1;
+		}
+	}
+	return rtn;
+}
+
+int Header_Check(int id, RF_List_t* RF_List){
+	int rtn=333;
+	int i;
+	RF_Device_t * Mem_Block;
+	
+	for(i=0;i<RF_List->counter;i++)
+	{
+		Mem_Block=RF_List->RF_Devices[i];
+		if(id==Mem_Block[0].Node_ID)
+		{
+			rtn=i;
+		}	
+	}
+	return rtn;
+}
+
+bool Header_Validation(int id, int Code, RF_List_t* RF_List){
+	
+	bool rtn=1;
+	int aux;
+	RF_Device_t * Mem_Block;
+	
+	
+	aux = Header_Check(id,RF_List);
+	if(333==aux)
+	{
+		rtn = Insert(id,Code,RF_List);
+		if(!rtn)
+		{
+			rtn=0;
+		}
+	}else
+	{
+		Mem_Block=RF_List->RF_Devices[aux];
+		Mem_Block[0].RF_Code=Code;
+		Mem_Block[0].updated=1;
+	}
+	return rtn;
+}
+
+int Comm_Code(RF_List_t* RF_List){
+	int Final_Code;
+	bool Alarm=0;
+	bool Fail=0;
+	int i;
+	int counter=0;
+	RF_Device_t * Mem_Block;
+	
+	for(i=0;i<RF_List->counter;i++)
+	{
+		
+		Mem_Block=RF_List->RF_Devices[i];
+		if(Mem_Block[0].updated)
+		{
+			counter++;
+			Mem_Block[0].updated=0;
+			if(ALARM_FAIL_CODE==Mem_Block[0].RF_Code)
+			{
+				Alarm=1;
+				Fail=1;
+				break;
+			}
+		
+			if(ALARM_CODE==Mem_Block[0].RF_Code)
+			{
+				Alarm=1;
+			}
+			
+			if(FAIL_CODE==Mem_Block[0].RF_Code)
+			{
+				Fail=1;
+			}
+		}
+	}	
+	if(RF_List->counter!=counter){
+		RF_List->comm_incomplete=1;
+	}
+	if((Alarm)&&(Fail))
+	{
+		Final_Code = ALARM_FAIL_CODE;
+	}else if(Alarm)
+	{
+		Final_Code = ALARM_CODE;
+	}else if(Fail)
+	{
+		Final_Code = FAIL_CODE;
+	}else
+	{
+		Final_Code = NORMAL_CODE;
+	}
+	return Final_Code;
+}
+
+void RF24DP:: Clean_RFDevices(){
+	int k;
+	
+	for(k=0;k<RF_List.counter;k++)
+	{
+		free(RF_List.RF_Devices[k]);
+		RF_List.counter=0;
+	}
+}
+
+/*
+ * 
+ * */
+
+int Lectura_Mesh(RF24Network& netw, RF_List_t * RF_Devices ){
 	int dat=EMPTY_CODE;
+	bool max=0;
 	if(netw.available()){
 		RF24NetworkHeader header;
 		netw.peek(header);
-		netw.read(header,&dat,sizeof(dat));
-		
-		/* bool Headers_CHeck(int node_address){
-		 * int i;
-		 * bool aux = 1;
-		 * for (i=0;i<=MAX DHCP;)
-		 * {	
-		 * 	if(node_address==HEADERS[i])
-		 * 	{
-		 * 		aux=0;
-		 * 		break;
-		 * 	}
-		 * }
-		 * return aux;
-		 * }
-		 * 
-		 * FSM Mejor!!
-		 * 
-		 * void Headers_Upload(int node_address){
-		 * 	if(Headers_Check(node_address){
-		 * 		header_count++;
-		 * 		HEADERS[header_count]=header.from_node;
-		 * 	}
-		 * }
-		 * 
-		 * if(header_count>1){
-		 *		if(!Headers_Check(node_address))
-		 * 			 
-		 * }
-		 * else{
-		 * //CODIGO NORMAL DE ARRIBA
-		 * }
-		 * else if(header_count>10){
-		 * error=1;
-		 * fixing=1;
-		 * hopping=1;
-		 * }
-		 * 
-		 * */
-		
-		/*
 		switch(header.type){
 		// Display the code received from the secundary nodes
 		case 'M': netw.read(header,&dat,sizeof(dat)); 
+#if defined (DEBUG)
 			printf("Rcv %u from 0%o\n",dat,header.from_node);
-	        break;
+#endif
+			max = Header_Validation(header.from_node, dat, RF_Devices);
+			if(!max)
+			{
+				//BORRAR TODO EL ARCHIVO Y DIRECCIONES
+				//UTILIZAR comm_status para indicar esto!!
+				printf("Error Nro Max Alcanzado\n");
+				dat = RESET_REQUEST;
+			}
+			//dat = Comm_Code(RF_Devices);
+			break;
 		default:  netw.read(header,0,0); 
+#if defined (DEBUG)
 	        printf("Rcv bad type %d from 0%o\n",header.type,header.from_node); 
+#endif	        
 	        break;
 		}
-		* */
-		
+	}else
+	{
+		dat = EMPTY_CODE;
 	}
+	
 	return dat;
 }
 
 void RF24DP:: RF24ChannelHop(void){
+	
 	//CUIDADO CON BLOQUEO POR TIEMPOS PROLONGADOS
 	printf("New Channel Assignation: %d \n",channels1[FireComm_Channel.ChannelCounter]);
 	Set_Channel(channels1[FireComm_Channel.ChannelCounter],MESH_TIME);
@@ -89,6 +194,8 @@ void RF24DP::Maintenance_clean(void){
 	error=0;
 	hopping=0;
 	fixing=0;
+	reset_request=0;
+	RF_List.counter=0;
 }
 
 int RF24DP::Comm_Status(void){
@@ -98,18 +205,25 @@ int RF24DP::Comm_Status(void){
 	// HOPPING -> 1
 	// FIXING  -> 2
 	// ERROR_RF   -> 3
-	if(hopping)
+	if(reset_request)
 	{
-		rtn=1;
+		rtn=3;
 	}
-	if(fixing)
+	else
 	{
-		rtn=rtn+1;
-	}
-	if(fixing)
-	{
-		rtn=rtn+1;
-	}
+		if(hopping)
+		{
+			rtn=1;
+		}
+		if(fixing)
+		{
+			rtn=rtn+1;
+		}
+		if(fixing)
+		{
+			rtn=rtn+1;
+		}
+	}	
 	
 	return rtn;
 
@@ -138,6 +252,8 @@ void RF24DP:: Init(void){
 	delayInit( &Receiver.delay,Receiver.timeout);
 	FireComm_Channel.ChannelCounter=0;
 	FireComm_Channel.ErrorCounter=0;
+	RF_List.counter=0;
+	RF_List.comm_incomplete=0;
 }
 
 void RF24DP:: Init(char CE, char CSN, char Num, char CA, char CF, char SC, char Reset, unsigned int timeout){
@@ -159,31 +275,73 @@ void RF24DP::Read_Data(RF24Network& netw){
 		Receiver.state = RECEIVE_TIMEOUT;
 	}else
 	{
-		Status = Lectura_Mesh(netw);	
-		
-		if(Status==(int)ALARM_FAIL_CODE){
-			Code=Alarm_Fail_Mode;
-			Receiver.state = RECEIVE_RECEIVED_OK;
-			FireComm_Channel.ErrorCounter=0;
-		}	
-		if(Status==(int)ALARM_CODE){
-			Code=Alarm_Mode;
-			Receiver.state = RECEIVE_RECEIVED_OK;
-			FireComm_Channel.ErrorCounter=0;
-		}
-		else if(Status==(int)FAIL_CODE){
-			Code=Fail_Mode;
-			Receiver.state = RECEIVE_RECEIVED_OK;
-			FireComm_Channel.ErrorCounter=0;
-		}	
-		else if(Status==(int)NORMAL_CODE){
-			Code=Normal_Mode;
-			Receiver.state = RECEIVE_RECEIVED_OK;
-			FireComm_Channel.ErrorCounter=0;
-		}
-		else if(Status==(int)EMPTY_CODE){
-			//better luck next time
+		Status = Lectura_Mesh(netw,&RF_List);	
+		if((EMPTY_CODE==Status)&&(EMPTY_CODE!=Code)){
 			Receiver.state = RECEIVE_RECEIVING;
+			switch(Code)
+			{
+				case Alarm_Fail_Mode:
+					Status=ALARM_FAIL_CODE;
+					break;
+					
+				case Alarm_Mode:
+					Status=ALARM_CODE;
+					break;	
+				
+				case Fail_Mode:
+					Status= FAIL_CODE;
+					break;
+				
+				case Normal_Mode:
+					Status= NORMAL_CODE;
+					break;
+				
+				default:
+					Status=NORMAL_CODE;
+					break;
+			}		
+		}
+		else
+		{
+			switch(Status)
+			{
+				case ALARM_FAIL_CODE:
+					Code=Alarm_Fail_Mode;
+					Receiver.state = RECEIVE_RECEIVED_OK;
+					FireComm_Channel.ErrorCounter=0;
+					break;
+					
+				case ALARM_CODE:
+					Code=Alarm_Mode;
+					Receiver.state = RECEIVE_RECEIVED_OK;
+					FireComm_Channel.ErrorCounter=0;
+					break;	
+				
+				case FAIL_CODE:
+					Code=Fail_Mode;
+					Receiver.state = RECEIVE_RECEIVED_OK;
+					FireComm_Channel.ErrorCounter=0;
+					break;
+				
+				case NORMAL_CODE:
+					Code=Normal_Mode;
+					Receiver.state = RECEIVE_RECEIVED_OK;
+					FireComm_Channel.ErrorCounter=0;
+					break;
+				
+				case EMPTY_CODE:
+					Receiver.state = RECEIVE_RECEIVING;
+					break;
+					
+				case RESET_REQUEST:
+					reset_request = 1;
+					Receiver.state = RECEIVE_RECEIVING;
+					break;
+				
+				default:
+					Receiver.state = RECEIVE_RECEIVING;
+					break;
+			}		
 		}
 	}
 }
@@ -200,9 +358,12 @@ ReceiveOrTimeoutState_t RF24DP :: Wait_for_Code (RF24Network& netw){
 				break;
 
 			case RECEIVE_RECEIVED_OK:
-				fixing=0;
-				hopping=0;
-				error=0;
+				if(!reset_request)
+				{
+					fixing=0;
+					hopping=0;
+					error=0;
+				}
 				Receiver.state = RECEIVE_CONFIG;				
 				break;
 
@@ -248,5 +409,7 @@ char RF24DP::RF24DPRead(void){
 }
 
 int RF24DP::Get_Code(void){
-	return Code;
+	int rtn;
+	rtn = Comm_Code(&RF_List);
+	return rtn;
 }

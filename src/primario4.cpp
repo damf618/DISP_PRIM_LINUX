@@ -86,49 +86,6 @@ static void SIG_Handler(int sig)
 	sig_flag=TRUE;				      
 }
 
-// Organized Exit of the system
-/** The system is based on Linux SO, this function closes system properly:
- * Closes the log file.
- * Stops Threads  in execution     
-	
-	@note It will be executed after the SIG_Handler on the main thread (if bloquearSign and 
-	desbloquearSign were used properly).
-	@see bloquearSign, desbloquearSign, Init_All, SIG_Handler
-**/
-void Kill_Them_All(void)
-{				
-	int thread_cancel;
-	int i;
-
-	if(TRUE==sig_flag){
-		printf("\n Procesando SIG. Eliminando Threats y Cerrando Sockets\n");
-		for(i=0;i<PROGRAM_THREADS;i++){
-			thread_cancel=pthread_cancel (Threads_Pointer[i]);
-			if(thread_cancel<0){
-				perror("\n Impossible to close the Thread correctly \n");
-			}
-			else{
-				perror("Succesfully Cancel signal");
-			}
-			thread_cancel=pthread_join (Threads_Pointer[i], NULL);
-			if(FALSE!=thread_cancel){		//Esperar a que sean eliminados
-				perror("\n Not possible to join the Thread \n");
-			}
-			else{
-				perror("Succesfully Joined Thread");
-			}
-		}
-		if(FALSE==fclose(statesfd)){
-			perror("Log Succesfully closed");
-		}
-		else
-		{
-			perror("Error Closing the File");
-		}
-		exit(1);
-	}
-}
-
 // Timestamp Generator
 /** The system is based on Linux SO, this function generates the date/time stamp to print
  * on the log file andweb server.   
@@ -156,7 +113,8 @@ void CurrentState(dprimario_t *prim)
 {
 	char CSTATE[50];
 
-	if((prim->previous_state!=prim->state)||(prim->previous_comm_state!=prim->comm_status)){	
+	if((prim->previous_state!=prim->state)||(prim->previous_comm_state!=prim->comm_status))
+	{	
 		prim->previous_state=prim->state;	
 		prim->previous_comm_state=prim->comm_status;
 		statesfd = fopen("STATES_LOG.txt","a");
@@ -227,7 +185,6 @@ void CurrentState(dprimario_t *prim)
 		{
 			sprintf(CSTATE,"COMM ERROR\n");
 			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-			sem_post(&Comm_error_sem);	
 		}
 		else if(HOPPING==prim->comm_status)
 		{
@@ -245,14 +202,77 @@ void CurrentState(dprimario_t *prim)
 
 //COMENTAR
 
-void File_Clean(const char * file_name){
+void File_Clean(const char * file_name)
+{
 	FILE * aux;
 	aux = fopen(file_name, "w+");
 
-	if (aux == NULL) {
-		printf("Error cleaning the file: %s",file_name);
-		while(true){
+	if (aux == NULL)
+	{
+		printf("Error cleaning the file: %s\n",file_name);
+	}
+	if(FALSE==fclose(statesfd))
+	{
+		printf("Succesfull Clean of file: %s\n",file_name);
+	}
+		else
+		{
+			printf("Error cleaning the file: %s\n",file_name);
 		}
+}
+
+
+// Organized Exit of the system
+/** The system is based on Linux SO, this function closes system properly:
+ * Closes the log file.
+ * Stops Threads  in execution     
+	
+	@note It will be executed after the SIG_Handler on the main thread (if bloquearSign and 
+	desbloquearSign were used properly).
+	@see bloquearSign, desbloquearSign, Init_All, SIG_Handler
+**/
+void Kill_Them_All(void)
+{				
+	int thread_cancel;
+	int i;
+
+	if(TRUE==sig_flag){
+		printf("\n Procesando SIG. Eliminando Threats y Cerrando Sockets\n");
+		for(i=0;i<PROGRAM_THREADS;i++)
+		{
+			thread_cancel=pthread_cancel (Threads_Pointer[i]);
+			if(thread_cancel<0)
+			{
+				perror("\n Impossible to close the Thread correctly \n");
+			}
+			else
+			{
+				perror("Succesfully Cancel signal");
+			}
+			thread_cancel=pthread_join (Threads_Pointer[i], NULL);
+			if(FALSE!=thread_cancel)
+			{		//Esperar a que sean eliminados
+				perror("\n Not possible to join the Thread \n");
+			}
+			else
+			{
+				perror("Succesfully Joined Thread");
+			}
+		}
+		if(FALSE==fclose(statesfd)){
+			perror("Log Succesfully closed");
+		}
+		else
+		{
+			perror("Error Closing the File");
+		}
+		printf("Freeing Dynamic Memory\n");
+		FireComm.Clean_RFDevices();
+		
+		printf("Cleaning List  of RF Devices\n");
+		File_Clean("dhcplist.txt");
+		
+		exit(1);
 	}
 }
 
@@ -265,8 +285,10 @@ void* RF_Maintenance_thread (void*parmthread)
 		sem_wait(&Comm_error_sem);
 		pthread_mutex_lock (&mutexspi);
 		pthread_mutex_lock (&mutexconsola);
+		pthread_mutex_lock (&mutexfile);
 		File_Clean("dhcplist.txt");
 		FireComm.Maintenance_clean();
+		pthread_mutex_unlock (&mutexfile);
 		pthread_mutex_unlock (&mutexconsola);
 		pthread_mutex_unlock (&mutexspi);
 	}
@@ -634,13 +656,13 @@ dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t c
 	if(Timeout_Polling(prim)){		//Verify if the Timeout transition limit
 		if((FireComm.RF24DPRead()==Comm_received)){  //Was an Alarm code received?
 			AUX=FireComm.Get_Code();
-			if(AUX==Alarm_Fail_Mode){
+			if(AUX==ALARM_FAIL_CODE){
 				comm_state=caseaf;
 			}
-			else if(AUX==Alarm_Mode){
+			else if(AUX==ALARM_CODE){
 				comm_state=casea;
 			}	
-			else if(AUX==Fail_Mode){
+			else if(AUX==FAIL_CODE){
 				comm_state=casef;
 			}		
 			else if(AUX==Normal_Mode){
@@ -658,6 +680,7 @@ dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t c
 			comm_state=NO_STATE;
 		}
 	}
+	printf("CommCheck Answer: %d\nGet_Code: %d\n",comm_state,AUX);
 	return comm_state;	
 }		
 
@@ -806,16 +829,22 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			LocalA=prim->AlarmContact_state;
 			break;
 		case EVENT:
+#if defined(DEBUG)
 			printf("\r\n Local Alarm Signal \r\n");
+#endif
 			LocalA=prim->AlarmContact_state;
 			Event=1;
 			break;
 		case EVENT_ERROR:
+#if defined(DEBUG)
 			printf("\r\n Unexpected Alarm Signal \r\n");
+#endif
 			error_detected=ERROR_DETECTED;
 			break;
 		default:
+#if defined(DEBUG)
 			printf("\r\n Local Alarm Error \r\n");
+#endif			
 			break;
 	}
 	
@@ -824,28 +853,36 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			LocalF=prim->FailContact_state;
 			break;
 		case EVENT:
+#if defined(DEBUG)
 			printf("\r\n Local Fail Signal \r\n");
+#endif			
 			LocalF=prim->FailContact_state;
 			Event=1;
 			break;
 		case EVENT_ERROR:
+#if defined(DEBUG)			
 			printf("\r\n Unexpected Fail Signal \r\n");
+#endif
 			error_detected=ERROR_DETECTED;
 			break;
 		default:
+#if defined(DEBUG)			
 			printf("\r\n Local Fail Error \r\n");
+#endif			
 			break;
 	}
 	if(prim->comm_status==OK)
 	{
 		Comm=CommCheck(prim,casea,casef,casen,caseaf);
+		printf("CommCheck:%d\n",Comm);
 		if(Comm!=NO_STATE)
 		{
+			ResetChange(prim);
 			if(Comm!=prim->Comm_Alarm_state){
 				prim->Comm_Alarm_state=Comm;
 				Event=1;
 				Comm_Event=1;
-				
+#if defined(DEBUG)				
 				switch(Comm)
 				{
 					case ALARM:
@@ -877,6 +914,12 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 						error_detected=ERROR_DETECTED;
 						break;
 				}
+#else 
+				if(Comm>10)
+				{
+				error_detected=ERROR_DETECTED;
+				}
+#endif				
 			}
 		}
 	}else
@@ -887,7 +930,7 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			Event=1;
 		}
 	}
-	
+	printf("Event:%d\nCommEvent: %d\n",Event,Comm_Event);
 	//Manejo del Evento
 	if(Event)
 	{
@@ -950,6 +993,9 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 		}
 	}
 
+#if defined(DEBUG)
+	printf(" State:%d\r\n  LocalA:%d\r\n LocalF:%d\r\n  Comm:%d\r\n",prim->state,LocalA,LocalF,Comm);
+#endif
 }	
 
 //update the MEFSs,
@@ -973,6 +1019,10 @@ void primUpdates(dprimario_t * pPrimario)
 	pPrimario->comm_status=FireComm.Comm_Status();	
 	FireComm.RF24DPUpdate(network);
 	ButtonUpdates(pPrimario);
+	if(ERROR==pPrimario->comm_status)
+	{
+		sem_post(&Comm_error_sem);	
+	}
 	
 }
 

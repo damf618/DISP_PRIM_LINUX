@@ -53,6 +53,7 @@ extern "C" {
 #define NO_ERROR 0			   //Timeout limit between transitionsions
 #define ERROR_DETECTED 1			   //Timeout limit between transitionsions
 
+//#define DEBUG
 
 #define TRUE 1
 #define FALSE 0
@@ -63,8 +64,8 @@ extern "C" {
 #define UPDATE_Thread Threads_Pointer[0]
 #define CHECK_Thread Threads_Pointer[1]
 #define CHECK_INTERVAL 1
-#define UPDATE_INTERVALU 15000
-#define CONTROL_INTERVALU 60000
+#define UPDATE_INTERVALU 10000
+#define CONTROL_INTERVALU 100000
 #define ERROR_INTERVALM 150000
 
 /*=====[Public function-like macros]=========================================*/

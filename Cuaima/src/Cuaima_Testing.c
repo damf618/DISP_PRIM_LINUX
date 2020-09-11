@@ -54,7 +54,6 @@ bool Header_Validation(int id, int Code, RF_List_t* RF_List){
 	
 	bool rtn=1;
 	int aux;
-	int i;
 	RF_Device_t * Mem_Block;
 	
 	
@@ -124,19 +123,16 @@ int Comm_Code(RF_List_t* RF_List){
 	{
 		Final_Code = NORMAL_CODE;
 	}
+	return Final_Code;
 }
 
 void Clean_RFDevices(RF_List_t* RF_List){
-	bool rtn=0;
 	int k;
-	RF_Device_t * Mem_Block;
 	
 	for(k=0;k<RF_List->counter;k++)
 	{
-		Mem_Block=RF_List->RF_Devices[k];
 		free(RF_List->RF_Devices[k]);
 		RF_List->counter=0;
 	}
-	Mem_Block=RF_List->RF_Devices[0];
 }
 

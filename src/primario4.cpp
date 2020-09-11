@@ -14,6 +14,14 @@
 #include <cstdbool>
 #include <cstdio>
 #include <RF24DP.h>
+#include <stdio.h>  /* for puts() */
+#include <string.h> /* for memset() */
+#include <unistd.h> /* for sleep() */
+#include <stdlib.h> /* for EXIT_SUCCESS */
+#include <stdbool.h>
+
+#include <signal.h> 
+#include "time.h"  
 
 /*=====[Definition macros of private constants]==============================*/
 
@@ -37,6 +45,9 @@ pthread_mutex_t mutexfile = PTHREAD_MUTEX_INITIALIZER;
 sem_t Update_sem; 
 sem_t Comm_error_sem; 
 
+timer_t timerid;
+struct sigevent sev;
+struct itimerspec trigger;
 
 FILE * statesfd;
 
@@ -98,6 +109,23 @@ void timestamp(char * actualtime)
     time_t ltime; 										// calendar time 
     ltime=time(NULL); 									// get current cal time 
     sprintf(actualtime,asctime(localtime(&ltime)));
+}
+
+//COMENTAR
+void RF_Reset_State(dprimario_t * prim){
+	prim->previous_state=INITIAL_DEFAULT_STATE;
+	prim->previous_comm_state=INITIAL_COMM_DEFAULT_STATE;
+}
+
+//LKOIUJJJ
+void thread_handler(union sigval sv) {
+   dprimario_t *pPrimario = (dprimario_t *)sv.sival_ptr;
+   printf("Timer On");
+   if(INCOMP==pPrimario->comm_status)
+	{
+		FireComm.Maintenance_clean();
+		RF_Reset_State(pPrimario);	
+	}     
 }
 
 // Notification of the users and update of the Log files 
@@ -176,29 +204,40 @@ void CurrentState(dprimario_t *prim)
 				fprintf(statesfd,CSTATE, sizeof(CSTATE));
 		}
 	
-		if(OK==prim->comm_status)
+		switch(prim->comm_status)
 		{
-			sprintf(CSTATE,"COMM OK!\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));	
-		}
-		else if(ERROR==prim->comm_status)
-		{
-			sprintf(CSTATE,"COMM ERROR\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-		}
-		else if(HOPPING==prim->comm_status)
-		{
-			sprintf(CSTATE,"CHANNEL HOPPING\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
-		}
-		else if(FIXING==prim->comm_status)
-		{
-			sprintf(CSTATE,"COMM FIXING\n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
+			case OK:
+				sprintf(CSTATE,"COMM OK!\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				break;
+			case ERROR:
+				sprintf(CSTATE,"COMM ERROR\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				sem_post(&Comm_error_sem);
+				break;
+			case HOPPING:
+				sprintf(CSTATE,"CHANNEL HOPPING\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				break;	
+			case FIXING:
+				sprintf(CSTATE,"COMM FIXING\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				break;	
+			case INCOMP:
+				sprintf(CSTATE,"COMM INCOMPLETE\n");
+				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				timer_settime(timerid, 0, &trigger, NULL);
+				break;	
 		}
 		fclose(statesfd);
 	}	  
 }
+
+/*
+ * 
+ * */
+
+
 
 //COMENTAR
 
@@ -287,6 +326,8 @@ void* RF_Maintenance_thread (void*parmthread)
 		pthread_mutex_lock (&mutexconsola);
 		pthread_mutex_lock (&mutexfile);
 		File_Clean("dhcplist.txt");
+		FireComm.Clean_RFDevices();
+		RF_Reset_State(&prim);
 		FireComm.Maintenance_clean();
 		pthread_mutex_unlock (&mutexfile);
 		pthread_mutex_unlock (&mutexconsola);
@@ -336,7 +377,6 @@ void* Control_thread (void*parmthread)
 		pthread_mutex_unlock (&mutexconsola);
 		pthread_mutex_unlock (&mutexprim);
 		usleep(CONTROL_INTERVALU);
-		//sleep(CONTROL_INTERVAL);
 	}
 }
 
@@ -389,6 +429,16 @@ int Init_All(void)
 	
 	bloquearSign();
 	
+	memset(&sev, 0, sizeof(struct sigevent));
+	memset(&trigger, 0, sizeof(struct itimerspec));
+
+	sev.sigev_notify = SIGEV_THREAD;
+	sev.sigev_notify_function = &thread_handler;
+	sev.sigev_value.sival_ptr = &prim;
+
+	timer_create(CLOCK_REALTIME, &sev, &timerid);
+	trigger.it_value.tv_sec = 1;
+	
 	//Creacion de Archivos .txt
 	statesfd = fopen("STATES_LOG.txt", "w+");
 
@@ -398,10 +448,10 @@ int Init_All(void)
 		}
 	}
 	
-	File_Clean("dhcplist.txt");
-	
 	fprintf(statesfd,"Inicializando Equipo\n");
 	fclose(statesfd);
+	
+	File_Clean("dhcplist.txt");
 
 	//Creacion del Thread de Update
 	error_check = pthread_create (&Threads_Pointer[0], NULL,Control_thread, NULL);
@@ -672,7 +722,6 @@ dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t c
 				comm_state=casen;
 			}
 			
-			
 			prim->COMMFLAG=1;							//Set the UART Flag interaction
 		}
 		else
@@ -680,7 +729,6 @@ dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t c
 			comm_state=NO_STATE;
 		}
 	}
-	printf("CommCheck Answer: %d\nGet_Code: %d\n",comm_state,AUX);
 	return comm_state;	
 }		
 
@@ -874,7 +922,6 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 	if(prim->comm_status==OK)
 	{
 		Comm=CommCheck(prim,casea,casef,casen,caseaf);
-		printf("CommCheck:%d\n",Comm);
 		if(Comm!=NO_STATE)
 		{
 			ResetChange(prim);
@@ -925,12 +972,13 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 	}else
 	{
 		Comm=casen;
-		if(Comm!=prim->Comm_Alarm_state){
+		if(Comm!=prim->Comm_Alarm_state)
+		{
 			prim->Comm_Alarm_state=Comm;
 			Event=1;
 		}
 	}
-	printf("Event:%d\nCommEvent: %d\n",Event,Comm_Event);
+	
 	//Manejo del Evento
 	if(Event)
 	{
@@ -1019,11 +1067,12 @@ void primUpdates(dprimario_t * pPrimario)
 	pPrimario->comm_status=FireComm.Comm_Status();	
 	FireComm.RF24DPUpdate(network);
 	ButtonUpdates(pPrimario);
+	/*
 	if(ERROR==pPrimario->comm_status)
 	{
 		sem_post(&Comm_error_sem);	
 	}
-	
+	*/
 }
 
 // It sets initial conditions for the entire program

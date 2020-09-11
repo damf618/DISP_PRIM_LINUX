@@ -103,6 +103,7 @@ int Comm_Code(RF_List_t* RF_List){
 				Fail=1;
 			}
 		}
+		printf("#%d Device: %d\n",i,Mem_Block[0].Node_ID);
 	}	
 	if(RF_List->counter!=counter){
 		RF_List->comm_incomplete=1;
@@ -196,6 +197,7 @@ void RF24DP::Maintenance_clean(void){
 	fixing=0;
 	reset_request=0;
 	RF_List.counter=0;
+	RF_List.comm_incomplete=0;
 }
 
 int RF24DP::Comm_Status(void){
@@ -204,10 +206,14 @@ int RF24DP::Comm_Status(void){
 	// OK      -> 0
 	// HOPPING -> 1
 	// FIXING  -> 2
-	// ERROR_RF   -> 3
+	// ERROR_RF-> 3
+	// INCOMP  -> 4
 	if(reset_request)
 	{
 		rtn=3;
+	}
+	else if(RF_List.comm_incomplete){
+		rtn=4;
 	}
 	else
 	{

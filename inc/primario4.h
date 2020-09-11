@@ -61,11 +61,11 @@ extern "C" {
 #define MAX_THREADS 3
 #define ERRORES 1
 #define ERROR_EXIT 1
-#define UPDATE_Thread Threads_Pointer[0]
-#define CHECK_Thread Threads_Pointer[1]
+//#define UPDATE_Thread Threads_Pointer[0]
+//#define CHECK_Thread Threads_Pointer[1]
 #define CHECK_INTERVAL 1
 #define UPDATE_INTERVALU 10000
-#define CONTROL_INTERVALU 100000
+#define CONTROL_INTERVALU 200000
 #define ERROR_INTERVALM 150000
 
 /*=====[Public function-like macros]=========================================*/
@@ -77,7 +77,7 @@ typedef enum{ NORMAL , ALARM, FAIL,ALARM_FAIL, PRENORMAL, PREALARM, PREFAIL,PRE_
 
 typedef enum{ NO_EVENT, EVENT, EVENT_ERROR } Contact_state_t;
 
-typedef enum{ OK,HOPPING, FIXING, ERROR } comm_state_t;
+typedef enum{ OK, HOPPING, FIXING, ERROR, INCOMP} comm_state_t;
 
 // Structure with the different data types to generate an independent Monitor
 typedef struct{

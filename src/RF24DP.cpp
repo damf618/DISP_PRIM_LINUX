@@ -77,11 +77,12 @@ int Comm_Code(RF_List_t* RF_List){
 	int i;
 	int counter=0;
 	RF_Device_t * Mem_Block;
+	printf("Number of Devices: %d\n",RF_List->counter);
 	
 	for(i=0;i<RF_List->counter;i++)
 	{
-		
 		Mem_Block=RF_List->RF_Devices[i];
+		printf("#%d Device: %d\n",i,Mem_Block[0].Node_ID);
 		if(Mem_Block[0].updated)
 		{
 			counter++;
@@ -103,9 +104,9 @@ int Comm_Code(RF_List_t* RF_List){
 				Fail=1;
 			}
 		}
-		printf("#%d Device: %d\n",i,Mem_Block[0].Node_ID);
 	}	
-	if(RF_List->counter!=counter){
+	//if(RF_List->counter!=counter)
+	if(counter<RF_List->n_nodes){
 		RF_List->comm_incomplete=1;
 	}
 	if((Alarm)&&(Fail))
@@ -260,6 +261,7 @@ void RF24DP:: Init(void){
 	FireComm_Channel.ErrorCounter=0;
 	RF_List.counter=0;
 	RF_List.comm_incomplete=0;
+	RF_List.n_nodes=N_NODES;
 }
 
 void RF24DP:: Init(char CE, char CSN, char Num, char CA, char CF, char SC, char Reset, unsigned int timeout){
@@ -305,6 +307,7 @@ void RF24DP::Read_Data(RF24Network& netw){
 				default:
 					Status=NORMAL_CODE;
 					break;
+					 
 			}		
 		}
 		else

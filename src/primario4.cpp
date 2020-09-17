@@ -117,14 +117,18 @@ void RF_Reset_State(dprimario_t * prim){
 	prim->previous_comm_state=INITIAL_COMM_DEFAULT_STATE;
 }
 
-//LKOIUJJJ
+//COMENTAR
+
+//NUEVAS TAREAS
+
 void thread_handler(union sigval sv) {
    dprimario_t *pPrimario = (dprimario_t *)sv.sival_ptr;
    printf("Timer On");
+   pPrimario->Maintenance_Timer=0;
    if(INCOMP==pPrimario->comm_status)
 	{
-		FireComm.Maintenance_clean();
-		RF_Reset_State(pPrimario);	
+		printf("Reset Auto Comm Incomplete");
+		sem_post(&Comm_error_sem);	    
 	}     
 }
 
@@ -224,9 +228,20 @@ void CurrentState(dprimario_t *prim)
 				fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;	
 			case INCOMP:
-				sprintf(CSTATE,"COMM INCOMPLETE\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
-				timer_settime(timerid, 0, &trigger, NULL);
+				//Considera no tomaracciones y si se mantiene simplemente se notifica...
+				//ya elsecundario esta tomando acciones
+				if(!prim->Maintenance_Timer){
+					sprintf(CSTATE,"CHANNEL INCOMPLETE\n");
+					fprintf(statesfd,CSTATE, sizeof(CSTATE));
+					prim->Maintenance_Timer=1;
+					FireComm.Maintenance_clean();	
+					FireComm.Clean_RFDevices();	
+					timer_settime(timerid, 0, &trigger, NULL);
+				} else{
+					sprintf(CSTATE,"CHANNEL HOPPING\n");
+					fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				}
+				
 				break;	
 		}
 		fclose(statesfd);
@@ -236,8 +251,6 @@ void CurrentState(dprimario_t *prim)
 /*
  * 
  * */
-
-
 
 //COMENTAR
 
@@ -437,7 +450,7 @@ int Init_All(void)
 	sev.sigev_value.sival_ptr = &prim;
 
 	timer_create(CLOCK_REALTIME, &sev, &timerid);
-	trigger.it_value.tv_sec = 1;
+	trigger.it_value.tv_sec = 5;
 	
 	//Creacion de Archivos .txt
 	statesfd = fopen("STATES_LOG.txt", "w+");
@@ -964,7 +977,7 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 #else 
 				if(Comm>10)
 				{
-				error_detected=ERROR_DETECTED;
+					error_detected=ERROR_DETECTED;
 				}
 #endif				
 			}
@@ -1097,6 +1110,7 @@ bool primInit(dprimario_t * pPrimario)
 	pPrimario->Alarm_Transition = 0;
 	pPrimario->Fail_Transition = 0;
 	pPrimario->Comm_Transition=0;
+	pPrimario->Maintenance_Timer=0;
 	pPrimario->previous_comm_state=INITIAL_COMM_DEFAULT_STATE;
 	pPrimario->timeout= DEF_TIMEOUT;
 	delayInit( &pPrimario->delay,pPrimario->timeout);

@@ -46,6 +46,7 @@ def LastNlines(fname, N, data):
 			data.append(line)
 	return True
 	
+	
 def main():
 	print('Starting main program')
 	

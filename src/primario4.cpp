@@ -112,7 +112,8 @@ void timestamp(char * actualtime)
 }
 
 //COMENTAR
-void RF_Reset_State(dprimario_t * prim){
+void RF_Reset_State(dprimario_t * prim)
+{
 	prim->previous_state=INITIAL_DEFAULT_STATE;
 	prim->previous_comm_state=INITIAL_COMM_DEFAULT_STATE;
 }
@@ -120,16 +121,28 @@ void RF_Reset_State(dprimario_t * prim){
 //COMENTAR
 
 //NUEVAS TAREAS
-
-void thread_handler(union sigval sv) {
+void thread_handler(union sigval sv)
+{
    dprimario_t *pPrimario = (dprimario_t *)sv.sival_ptr;
-   printf("Timer On");
-   pPrimario->Maintenance_Timer=0;
-   if(INCOMP==pPrimario->comm_status)
+   pPrimario->Incomplete_counter++;
+   pPrimario->Incomplete_flag=0;
+   if(pPrimario->Incomplete_counter>=MAX_INCOMPLETE_ERRORS)
+   {
+	   printf("Incomplete Reset");
+	   pPrimario->Incomplete_counter=0;
+		sem_post(&Comm_error_sem);
+   }
+}
+
+
+bool PresState(dprim_state_t state)
+{
+	bool rtn=0;
+	if((state!=PREALARM)&&(state!=PRENORMAL)&&(state!=PREFAIL)&&(state!=PRE_ALARM_FAIL))
 	{
-		printf("Reset Auto Comm Incomplete");
-		sem_post(&Comm_error_sem);	    
-	}     
+		rtn=1;
+	}
+	return rtn;
 }
 
 // Notification of the users and update of the Log files 
@@ -144,15 +157,29 @@ void thread_handler(union sigval sv) {
 void CurrentState(dprimario_t *prim)
 {
 	char CSTATE[50];
-
-	if((prim->previous_state!=prim->state)||(prim->previous_comm_state!=prim->comm_status))
+	char INCOMPLETE[20];
+	
+	if(((prim->previous_state!=prim->state)&&(PresState(prim->state)))||(prim->previous_comm_state!=prim->comm_status)
+	 ||((prim->active_nodes<N_NODES)&&(!prim->Incomplete_flag)))
 	{	
+		prim->Line_Counter++;
 		prim->previous_state=prim->state;	
 		prim->previous_comm_state=prim->comm_status;
-		statesfd = fopen("STATES_LOG.txt","a");
+		if(prim->Line_Counter>=N_RECORD_EVENTS)
+		{
+			statesfd = fopen("STATES_LOG.txt","w+");
+			prim->Line_Counter=0;
+		}else{
+			statesfd = fopen("STATES_LOG.txt","a");
+		}
 		while(statesfd == NULL)
 		{
-			printf("Error opening the file: STATES_LOG.txt.\n");
+			if(prim->Line_Counter>=10)
+			{
+			statesfd = fopen("STATES_LOG.txt","w+");
+			}else{
+			statesfd = fopen("STATES_LOG.txt","a");
+			}
 			usleep(ERROR_INTERVALM);
 		};
 	
@@ -207,11 +234,20 @@ void CurrentState(dprimario_t *prim)
 				sprintf(CSTATE,"ERROR\n");
 				fprintf(statesfd,CSTATE, sizeof(CSTATE));
 		}
-	
+		if((prim->active_nodes<N_NODES)&&(!prim->Incomplete_flag))
+		{
+			prim->Incomplete_flag=1;
+			timer_settime(timerid, 0, &trigger, NULL);
+			sprintf(INCOMPLETE,"(INCOMPLETE)");
+		}
+		else{
+			sprintf(INCOMPLETE," ");
+			prim->Incomplete_counter=0;
+		}
 		switch(prim->comm_status)
 		{
 			case OK:
-				sprintf(CSTATE,"COMM OK!\n");
+				sprintf(CSTATE,"COMM OK! %s\n",INCOMPLETE);
 				fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case ERROR:
@@ -227,23 +263,11 @@ void CurrentState(dprimario_t *prim)
 				sprintf(CSTATE,"COMM FIXING\n");
 				fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;	
-			case INCOMP:
-				//Considera no tomaracciones y si se mantiene simplemente se notifica...
-				//ya elsecundario esta tomando acciones
-				if(!prim->Maintenance_Timer){
-					sprintf(CSTATE,"CHANNEL INCOMPLETE\n");
-					fprintf(statesfd,CSTATE, sizeof(CSTATE));
-					prim->Maintenance_Timer=1;
-					FireComm.Maintenance_clean();	
-					FireComm.Clean_RFDevices();	
-					timer_settime(timerid, 0, &trigger, NULL);
-				} else{
-					sprintf(CSTATE,"CHANNEL HOPPING\n");
-					fprintf(statesfd,CSTATE, sizeof(CSTATE));
-				}
-				
-				break;	
 		}
+		
+		sprintf(CSTATE,"ACTIVES NODES: %d\n",prim->active_nodes);
+		fprintf(statesfd,CSTATE, sizeof(CSTATE));
+		prim->previous_active_nodes=prim->active_nodes;
 		fclose(statesfd);
 	}	  
 }
@@ -251,7 +275,6 @@ void CurrentState(dprimario_t *prim)
 /*
  * 
  * */
-
 //COMENTAR
 
 void File_Clean(const char * file_name)
@@ -272,7 +295,6 @@ void File_Clean(const char * file_name)
 			printf("Error cleaning the file: %s\n",file_name);
 		}
 }
-
 
 // Organized Exit of the system
 /** The system is based on Linux SO, this function closes system properly:
@@ -556,6 +578,8 @@ bool Timeout_Polling(dprimario_t * prim)
 {
 	bool timeout=FALSE;
 	timeout = !(delayRead(&prim->delay));
+	if(!timeout)
+	printf("Timeout Event");
 	return timeout;
 }
 
@@ -572,7 +596,6 @@ static void ResetChange(dprimario_t * prim)
 	FireComm.RF24DPReset();					 //Reset the UART Listening Process
 	prim->count=0;							 //Reset the count of number of cycles
 	prim->COMMFLAG=0;						 //Reset the UART flag
-	
 }
 
 // To verify if we are stuck in the middle of a transition (PRE-STATE) or in a
@@ -608,7 +631,7 @@ static void PRESTUCK(dprimario_t * prim)
 					prim->state=NORMAL;
 				}
 				else{
-					printf("\r\n No Additional Events detected, Out of Alarm Mode \r\n");
+					printf("\r\n No Additional Events detected, Out of Alarm Mode1 \r\n");
 					prim->state=PRENORMAL;
 				}
 			}
@@ -619,7 +642,7 @@ static void PRESTUCK(dprimario_t * prim)
 					printf("\r\n Normal Mode \r\n");
 				}	
 				else if((!prim->Fire_event)&&(!prim->Fail_event)){
-					printf("\r\n No Additional Events detected, Out of Alarm Mode \r\n");
+					printf("\r\n No Additional Events detected, Out of Alarm Mode2 \r\n");
 					prim->state=PRENORMAL;
 				}
 		}
@@ -1033,7 +1056,7 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 		
 		if (Comm_Event)
 		{
-			ResetChange(prim);
+			//ResetChange(prim);
 			prim->Comm_Transition=1;
 			if(prim->Fire_event){
 				prim->Alarm_Transition=1;
@@ -1080,6 +1103,7 @@ void primUpdates(dprimario_t * pPrimario)
 	pPrimario->comm_status=FireComm.Comm_Status();	
 	FireComm.RF24DPUpdate(network);
 	ButtonUpdates(pPrimario);
+	pPrimario->active_nodes=FireComm.Get_Nodes();
 	/*
 	if(ERROR==pPrimario->comm_status)
 	{
@@ -1111,6 +1135,11 @@ bool primInit(dprimario_t * pPrimario)
 	pPrimario->Fail_Transition = 0;
 	pPrimario->Comm_Transition=0;
 	pPrimario->Maintenance_Timer=0;
+	pPrimario->previous_active_nodes=0;
+	pPrimario->active_nodes=0;
+	pPrimario->Incomplete_flag=0;
+	pPrimario->Line_Counter=0;
+	pPrimario->Incomplete_counter=0;
 	pPrimario->previous_comm_state=INITIAL_COMM_DEFAULT_STATE;
 	pPrimario->timeout= DEF_TIMEOUT;
 	delayInit( &pPrimario->delay,pPrimario->timeout);

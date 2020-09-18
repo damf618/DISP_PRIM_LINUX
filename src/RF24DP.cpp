@@ -77,21 +77,22 @@ int Comm_Code(RF_List_t* RF_List){
 	int i;
 	int counter=0;
 	RF_Device_t * Mem_Block;
-	printf("Number of Devices: %d\n",RF_List->counter);
+	//printf("Number of Devices: %d\n",RF_List->counter);
 	
 	for(i=0;i<RF_List->counter;i++)
 	{
 		Mem_Block=RF_List->RF_Devices[i];
-		printf("#%d Device: %d\n",i,Mem_Block[0].Node_ID);
+		//printf("#%d Device: %d\n",i,Mem_Block[0].Node_ID);
 		if(Mem_Block[0].updated)
 		{
+			//printf("#%d Device: %d,State: %d\n",i,Mem_Block[0].Node_ID,Mem_Block[0].RF_Code);
 			counter++;
 			Mem_Block[0].updated=0;
 			if(ALARM_FAIL_CODE==Mem_Block[0].RF_Code)
 			{
 				Alarm=1;
 				Fail=1;
-				break;
+				
 			}
 		
 			if(ALARM_CODE==Mem_Block[0].RF_Code)
@@ -104,11 +105,14 @@ int Comm_Code(RF_List_t* RF_List){
 				Fail=1;
 			}
 		}
-	}	
-	//if(RF_List->counter!=counter)
-	if(counter<RF_List->n_nodes){
-		RF_List->comm_incomplete=1;
 	}
+	RF_List->active_nodes = counter;
+	//printf("active_nodes: %d\n",RF_List->active_nodes);
+	
+	//if(RF_List->counter!=counter)
+	//if((counter<RF_List->n_nodes)&&(RF_List->counter>=RF_List->n_nodes)){
+	//	RF_List->comm_incomplete=1;
+	//}
 	if((Alarm)&&(Fail))
 	{
 		Final_Code = ALARM_FAIL_CODE;
@@ -198,7 +202,6 @@ void RF24DP::Maintenance_clean(void){
 	fixing=0;
 	reset_request=0;
 	RF_List.counter=0;
-	RF_List.comm_incomplete=0;
 }
 
 int RF24DP::Comm_Status(void){
@@ -208,13 +211,9 @@ int RF24DP::Comm_Status(void){
 	// HOPPING -> 1
 	// FIXING  -> 2
 	// ERROR_RF-> 3
-	// INCOMP  -> 4
 	if(reset_request)
 	{
 		rtn=3;
-	}
-	else if(RF_List.comm_incomplete){
-		rtn=4;
 	}
 	else
 	{
@@ -226,7 +225,7 @@ int RF24DP::Comm_Status(void){
 		{
 			rtn=rtn+1;
 		}
-		if(fixing)
+		if(error)
 		{
 			rtn=rtn+1;
 		}
@@ -260,8 +259,9 @@ void RF24DP:: Init(void){
 	FireComm_Channel.ChannelCounter=0;
 	FireComm_Channel.ErrorCounter=0;
 	RF_List.counter=0;
-	RF_List.comm_incomplete=0;
 	RF_List.n_nodes=N_NODES;
+	RF_List.active_nodes=0;
+	Active_nodes=0;
 }
 
 void RF24DP:: Init(char CE, char CSN, char Num, char CA, char CF, char SC, char Reset, unsigned int timeout){
@@ -283,7 +283,7 @@ void RF24DP::Read_Data(RF24Network& netw){
 		Receiver.state = RECEIVE_TIMEOUT;
 	}else
 	{
-		Status = Lectura_Mesh(netw,&RF_List);	
+		Status = Lectura_Mesh(netw,&RF_List);
 		if((EMPTY_CODE==Status)&&(EMPTY_CODE!=Code)){
 			Receiver.state = RECEIVE_RECEIVING;
 			switch(Code)
@@ -420,5 +420,11 @@ char RF24DP::RF24DPRead(void){
 int RF24DP::Get_Code(void){
 	int rtn;
 	rtn = Comm_Code(&RF_List);
+	Active_nodes=RF_List.active_nodes;	
 	return rtn;
+}
+
+int RF24DP::Get_Nodes(void){
+	
+	return Active_nodes;
 }

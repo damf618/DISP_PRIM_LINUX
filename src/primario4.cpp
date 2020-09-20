@@ -126,6 +126,7 @@ void thread_handler(union sigval sv)
    dprimario_t *pPrimario = (dprimario_t *)sv.sival_ptr;
    pPrimario->Incomplete_counter++;
    pPrimario->Incomplete_flag=0;
+   printf("\nTimer ON\n");
    if(pPrimario->Incomplete_counter>=MAX_INCOMPLETE_ERRORS)
    {
 	   printf("Incomplete Reset");
@@ -236,36 +237,42 @@ void CurrentState(dprimario_t *prim)
 		}
 		if((prim->active_nodes<N_NODES)&&(!prim->Incomplete_flag))
 		{
+			printf("Incomplete for me");
 			prim->Incomplete_flag=1;
 			timer_settime(timerid, 0, &trigger, NULL);
-			sprintf(INCOMPLETE,"(INCOMPLETE)");
+			sprintf(INCOMPLETE," (INCOMPLETE)");
 		}
 		else{
 			sprintf(INCOMPLETE," ");
 			prim->Incomplete_counter=0;
 		}
-		switch(prim->comm_status)
-		{
-			case OK:
-				sprintf(CSTATE,"COMM OK! %s\n",INCOMPLETE);
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
-				break;
-			case ERROR:
-				sprintf(CSTATE,"COMM ERROR\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
-				sem_post(&Comm_error_sem);
-				break;
-			case HOPPING:
-				sprintf(CSTATE,"CHANNEL HOPPING\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
-				break;	
-			case FIXING:
-				sprintf(CSTATE,"COMM FIXING\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
-				break;	
+		if(N_NODES>0){
+			switch(prim->comm_status)
+			{
+				case OK:
+					sprintf(CSTATE,"COMM OK!%s\n",INCOMPLETE);
+					fprintf(statesfd,CSTATE, sizeof(CSTATE));
+					break;
+				case ERROR:
+					sprintf(CSTATE,"COMM ERROR\n");
+					fprintf(statesfd,CSTATE, sizeof(CSTATE));
+					sem_post(&Comm_error_sem);
+					break;
+				case HOPPING:
+					sprintf(CSTATE,"COMM HOPPING\n");
+					fprintf(statesfd,CSTATE, sizeof(CSTATE));
+					break;	
+				case FIXING:
+					sprintf(CSTATE,"COMM FIXING\n");
+					fprintf(statesfd,CSTATE, sizeof(CSTATE));
+					break;	
+			}
 		}
-		
-		sprintf(CSTATE,"ACTIVES NODES: %d\n",prim->active_nodes);
+		else{
+			sprintf(CSTATE,"COMM OK! \n");
+			fprintf(statesfd,CSTATE, sizeof(CSTATE));
+		}
+		sprintf(CSTATE,"ACTIVES NODES -> %d\n",prim->active_nodes);
 		fprintf(statesfd,CSTATE, sizeof(CSTATE));
 		prim->previous_active_nodes=prim->active_nodes;
 		fclose(statesfd);
@@ -522,8 +529,10 @@ int Init_All(void)
 	}
 	
 	desbloquearSign();	
+	
+	
 	while( true )
-	{	
+	{			
 		pthread_mutex_lock (&mutexprim);
 		pthread_mutex_lock (&mutexspi);
 		primUpdates(&prim);
@@ -1082,6 +1091,26 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 #endif
 }	
 
+void Nodes_Config(int* nodes_number){
+	int n_node=0;
+	FILE *fptr;
+	fptr = fopen("Config.txt","r");
+	
+	if(fptr == NULL)
+	{
+		printf("Not possible to Update Nodes");              
+	}else
+	{
+		scanf("%d",&n_node);
+		if(n_node!=nodes_number[0])
+		{
+			nodes_number[0]=n_node;
+		}
+	}
+	fclose(fptr);
+}
+
+
 //update the MEFSs,
 /** This functions updates all the inputs of the system, is called periodically by the
  * Init_All thread (Main Thread). It must be called frequently to make sure to
@@ -1104,6 +1133,7 @@ void primUpdates(dprimario_t * pPrimario)
 	FireComm.RF24DPUpdate(network);
 	ButtonUpdates(pPrimario);
 	pPrimario->active_nodes=FireComm.Get_Nodes();
+	//Nodes_Config(&pPrimario->min_node);
 	/*
 	if(ERROR==pPrimario->comm_status)
 	{
@@ -1140,6 +1170,7 @@ bool primInit(dprimario_t * pPrimario)
 	pPrimario->Incomplete_flag=0;
 	pPrimario->Line_Counter=0;
 	pPrimario->Incomplete_counter=0;
+	pPrimario->min_node=0;
 	pPrimario->previous_comm_state=INITIAL_COMM_DEFAULT_STATE;
 	pPrimario->timeout= DEF_TIMEOUT;
 	delayInit( &pPrimario->delay,pPrimario->timeout);

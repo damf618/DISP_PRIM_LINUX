@@ -77,15 +77,15 @@ int Comm_Code(RF_List_t* RF_List){
 	int i;
 	int counter=0;
 	RF_Device_t * Mem_Block;
-	//printf("Number of Devices: %d\n",RF_List->counter);
+	printf("Number of Devices: %d\n",RF_List->counter);
 	
 	for(i=0;i<RF_List->counter;i++)
 	{
 		Mem_Block=RF_List->RF_Devices[i];
-		//printf("#%d Device: %d\n",i,Mem_Block[0].Node_ID);
+		printf("#%d Device: %d\n",i,Mem_Block[0].Node_ID);
 		if(Mem_Block[0].updated)
 		{
-			//printf("#%d Device: %d,State: %d\n",i,Mem_Block[0].Node_ID,Mem_Block[0].RF_Code);
+			printf("#%d Device: %d,State: %d\n",i,Mem_Block[0].Node_ID,Mem_Block[0].RF_Code);
 			counter++;
 			Mem_Block[0].updated=0;
 			if(ALARM_FAIL_CODE==Mem_Block[0].RF_Code)

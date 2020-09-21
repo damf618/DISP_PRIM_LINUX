@@ -92,7 +92,6 @@ int Comm_Code(RF_List_t* RF_List){
 			{
 				Alarm=1;
 				Fail=1;
-				
 			}
 		
 			if(ALARM_CODE==Mem_Block[0].RF_Code)
@@ -259,10 +258,16 @@ void RF24DP:: Init(void){
 	FireComm_Channel.ChannelCounter=0;
 	FireComm_Channel.ErrorCounter=0;
 	RF_List.counter=0;
-	RF_List.n_nodes=N_NODES;
+	//RF_List.n_nodes=N_NODES;
+	RF_List.n_nodes=0;
 	RF_List.active_nodes=0;
 	Active_nodes=0;
 }
+
+void RF24DP:: NnodesUpdate(int nnodes){
+	RF_List.n_nodes=nnodes;	
+}
+
 
 void RF24DP:: Init(char CE, char CSN, char Num, char CA, char CF, char SC, char Reset, unsigned int timeout){
 		CE_pin = CE; 		//22;

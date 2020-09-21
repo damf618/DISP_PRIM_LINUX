@@ -126,13 +126,34 @@ void thread_handler(union sigval sv)
    dprimario_t *pPrimario = (dprimario_t *)sv.sival_ptr;
    pPrimario->Incomplete_counter++;
    pPrimario->Incomplete_flag=0;
-   printf("\nTimer ON\n");
    if(pPrimario->Incomplete_counter>=MAX_INCOMPLETE_ERRORS)
    {
-	   printf("Incomplete Reset");
+	   printf("Incomplete Reset\n");
 	   pPrimario->Incomplete_counter=0;
 		sem_post(&Comm_error_sem);
    }
+}
+
+
+void Nodes_Config(dprimario_t * prim){
+	int n_node=0;
+	FILE *fptr;
+	fptr = fopen("Config.txt","r");
+	
+	if(fptr == NULL)
+	{
+		printf("Not possible to Update Nodes");              
+	}else
+	{
+		n_node = fgetc(fptr)-48;
+		if(n_node!=prim->min_node)
+		{
+			prim->min_node=n_node;
+			FireComm.NnodesUpdate(n_node);
+		}
+	fclose(fptr);
+	}
+	
 }
 
 
@@ -160,8 +181,10 @@ void CurrentState(dprimario_t *prim)
 	char CSTATE[50];
 	char INCOMPLETE[20];
 	
+	Nodes_Config(prim);
+	
 	if(((prim->previous_state!=prim->state)&&(PresState(prim->state)))||(prim->previous_comm_state!=prim->comm_status)
-	 ||((prim->active_nodes<N_NODES)&&(!prim->Incomplete_flag)))
+	 ||((prim->active_nodes<prim->min_node)&&(!prim->Incomplete_flag)))
 	{	
 		prim->Line_Counter++;
 		prim->previous_state=prim->state;	
@@ -235,7 +258,7 @@ void CurrentState(dprimario_t *prim)
 				sprintf(CSTATE,"ERROR\n");
 				fprintf(statesfd,CSTATE, sizeof(CSTATE));
 		}
-		if((prim->active_nodes<N_NODES)&&(!prim->Incomplete_flag))
+		if((prim->active_nodes<prim->min_node)&&(!prim->Incomplete_flag))
 		{
 			printf("Incomplete for me");
 			prim->Incomplete_flag=1;
@@ -246,7 +269,7 @@ void CurrentState(dprimario_t *prim)
 			sprintf(INCOMPLETE," ");
 			prim->Incomplete_counter=0;
 		}
-		if(N_NODES>0){
+		if(prim->min_node>0){
 			switch(prim->comm_status)
 			{
 				case OK:
@@ -529,7 +552,7 @@ int Init_All(void)
 	}
 	
 	desbloquearSign();	
-	
+	Nodes_Config(&prim);
 	
 	while( true )
 	{			
@@ -1091,26 +1114,6 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 #endif
 }	
 
-void Nodes_Config(int* nodes_number){
-	int n_node=0;
-	FILE *fptr;
-	fptr = fopen("Config.txt","r");
-	
-	if(fptr == NULL)
-	{
-		printf("Not possible to Update Nodes");              
-	}else
-	{
-		scanf("%d",&n_node);
-		if(n_node!=nodes_number[0])
-		{
-			nodes_number[0]=n_node;
-		}
-	}
-	fclose(fptr);
-}
-
-
 //update the MEFSs,
 /** This functions updates all the inputs of the system, is called periodically by the
  * Init_All thread (Main Thread). It must be called frequently to make sure to
@@ -1133,7 +1136,6 @@ void primUpdates(dprimario_t * pPrimario)
 	FireComm.RF24DPUpdate(network);
 	ButtonUpdates(pPrimario);
 	pPrimario->active_nodes=FireComm.Get_Nodes();
-	//Nodes_Config(&pPrimario->min_node);
 	/*
 	if(ERROR==pPrimario->comm_status)
 	{

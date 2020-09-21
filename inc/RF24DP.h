@@ -113,6 +113,7 @@ class RF24DP : public RF24Mesh	{
 		bool fixing = 0;
 		bool reset_request =0;
 		RF_List_t RF_List;
+		int Active_nodes=0;
 		
 	public:
 		
@@ -135,9 +136,11 @@ class RF24DP : public RF24Mesh	{
 		void RF24ChannelHop(void);
 		void RF24ErrorManage(void);
 		int Get_Code(void);
+		int Get_Nodes(void);
 		int Comm_Status(void);
 		void Maintenance_clean(void);
-		void Clean_RFDevices();
+		void Clean_RFDevices(void);
+		void NnodesUpdate(int nnodes);
 };
 
 /*

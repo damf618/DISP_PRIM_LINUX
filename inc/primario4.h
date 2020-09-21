@@ -61,12 +61,13 @@ extern "C" {
 #define MAX_THREADS 3
 #define ERRORES 1
 #define ERROR_EXIT 1
-//#define UPDATE_Thread Threads_Pointer[0]
-//#define CHECK_Thread Threads_Pointer[1]
 #define CHECK_INTERVAL 1
 #define UPDATE_INTERVALU 10000
-#define CONTROL_INTERVALU 200000
+#define CONTROL_INTERVALU 200000 //200000   MODIFICAR EL ALGORITMO PARA QUE NO SEA ALGOPUNTUALSINO ALGO ACUMULATIVODE ESTADOS! DURANTE MAS TIEMPO EXISTENDEMASIADOS COMM8 Y ALOMENTO DE RECIBIR UNO DISTINTO ESTAMOS CAMBIANDO TODO!
 #define ERROR_INTERVALM 150000
+//#define N_NODES 2
+#define MAX_INCOMPLETE_ERRORS 5
+#define N_RECORD_EVENTS 3000
 
 /*=====[Public function-like macros]=========================================*/
 
@@ -77,7 +78,7 @@ typedef enum{ NORMAL , ALARM, FAIL,ALARM_FAIL, PRENORMAL, PREALARM, PREFAIL,PRE_
 
 typedef enum{ NO_EVENT, EVENT, EVENT_ERROR } Contact_state_t;
 
-typedef enum{ OK, HOPPING, FIXING, ERROR, INCOMP} comm_state_t;
+typedef enum{ OK, HOPPING, FIXING, ERROR} comm_state_t;
 
 // Structure with the different data types to generate an independent Monitor
 typedef struct{
@@ -100,6 +101,13 @@ typedef struct{
 	bool Alarm_Transition;
 	bool Fail_Transition;
 	bool Comm_Transition;
+	bool Maintenance_Timer;
+	int previous_active_nodes;
+	int active_nodes;
+	bool Incomplete_flag;
+	int Incomplete_counter;
+	uint8_t Line_Counter;
+	int min_node;
 
 }dprimario_t;
 

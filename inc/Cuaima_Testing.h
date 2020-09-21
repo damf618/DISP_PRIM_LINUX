@@ -27,7 +27,7 @@ extern "C" {
 #endif
 
 /*=====[Definition macros of public constants]===============================*/
-#define MAX_RF_DEVICES 20
+#define MAX_RF_DEVICES 100
 /*=====[Public function-like macros]=========================================*/
 
 /*=====[Definitions of public data types]====================================*/
@@ -43,7 +43,8 @@ typedef struct RF_List_s
 {
 	RF_Device_t* RF_Devices[MAX_RF_DEVICES];
 	int counter;
-	bool comm_incomplete;
+	int n_nodes;
+	int active_nodes;
 } RF_List_t;
 
 

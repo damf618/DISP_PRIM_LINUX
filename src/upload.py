@@ -6,7 +6,7 @@ import signal
 
 firebase = firebase.FirebaseApplication('https://maestria1-24022020.firebaseio.com/', None)
 fname= "STATES_LOG.txt"
-N = 3
+N = 4
 Refresh_data=[]
 
 class myThread (threading.Thread):
@@ -64,6 +64,9 @@ def main():
 			data =  { 'Estado': Refresh_data[1],}
 			result = firebase.patch('/SISTEMA DE DETECCION INCENDIO DAMF/Estado_Local',data)
 			    
+			data =  { 'RFDSecundario': Refresh_data[3],}
+                        result = firebase.patch('/SISTEMA DE DETECCION INCENDIO DAMF/ACTIVE_NODES',data)
+            
 			t.sleep(0.5) 
 		except:
 			t.sleep(1.25)

@@ -108,6 +108,7 @@ typedef struct{
 	int Incomplete_counter;
 	uint8_t Line_Counter;
 	int min_node;
+	bool node_update;
 
 }dprimario_t;
 

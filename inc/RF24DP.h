@@ -56,9 +56,7 @@ extern "C" {
 #define RESET_TIME 5000					//MAX Time for stablish communication response.
 
 #define CHANNEL_ERROR_TOLERANCE 5
-//#define TIME_CHECK 5
 #define MESH_TIME read_timeout_default
-
 
 
 // Structure with the different data types to generate an independent Monitor

@@ -111,16 +111,31 @@ void timestamp(char * actualtime)
     sprintf(actualtime,asctime(localtime(&ltime)));
 }
 
-//COMENTAR
+// Reset of the previous states used to compare an event  
+/** In order for the system to notify a new event it needs to acknowledge which is the
+ *  current state, to make this comparison we save the previous state of the entire 
+ *  system  and this also applies to the Comm (RF) result .   
+	
+	@param prim struct dprimario_t containing the entire variables needed fot the system.
+	@see RF_Maintenance_thread
+**/
 void RF_Reset_State(dprimario_t * prim)
 {
 	prim->previous_state=INITIAL_DEFAULT_STATE;
 	prim->previous_comm_state=INITIAL_COMM_DEFAULT_STATE;
 }
 
-//COMENTAR
-
-//NUEVAS TAREAS
+// RF Incomplete Tmer event corresponding task  
+/** The system keeps track of how many RF Devices are actively communicating with the
+ * master device, in case there are fewer active nodes than the mininum number of nodes 
+ * stablished, the timer is set. If this process has happenned more than 
+ * MAX_INCOMPLETE_ERRORS times, then we generate a signal to activate the 
+ * RF_Maintenance_thread and restart the full system.  
+	
+	@param sigval timer argument casted to a pointer to struct dprimario_t containing 
+	the entire variables needed fot the system.
+	@see Current_State,RF_Maintenance_thread
+**/
 void thread_handler(union sigval sv)
 {
    dprimario_t *pPrimario = (dprimario_t *)sv.sival_ptr;
@@ -130,11 +145,19 @@ void thread_handler(union sigval sv)
    {
 	   printf("Incomplete Reset\n");
 	   pPrimario->Incomplete_counter=0;
-		sem_post(&Comm_error_sem);
+		sem_post(&Comm_error_sem);			//Semaphore to activate the Maintenance thread
    }
 }
 
-
+// Extract the number of nodes stablished in the file Config.txt
+/** The system keeps track of how many RF Devices are actively communicating with the
+ * master device, in case there are fewer active nodes than the mininum number of nodes 
+ * stablished, the Incomplete status is activated alongside the Incomplete protocol, the
+ * configurartion of the minimun nomber of nodes, is made through a web gui.
+	
+	@param prim struct dprimario_t containing the entire variables needed fot the system.
+	@see Current_State
+**/
 void Nodes_Config(dprimario_t * prim){
 	int n_node=0;
 	FILE *fptr;
@@ -145,18 +168,28 @@ void Nodes_Config(dprimario_t * prim){
 		printf("Not possible to Update Nodes");              
 	}else
 	{
-		n_node = fgetc(fptr)-48;
+		n_node = fgetc(fptr)-48;		//THe file is read using the ascii table
 		if(n_node!=prim->min_node)
 		{
 			prim->min_node=n_node;
 			FireComm.NnodesUpdate(n_node);
+			prim->node_update=1;
 		}
 	fclose(fptr);
 	}
 	
 }
 
-
+// We do not want to send notification if we are on a "Transitional state", this function
+// allows us to verify the current state.
+/** The system uploads the current state in different platforms through a csv file, we 
+ * are not interested in uploading an intermediate state as PRENORMAL or PREFAIL, if we
+ * are going to notify the user of a change of state it must be a "final" state as NORMAL
+ *  or FAIL. 
+	
+	@param state dprim_state_t current state, part of the dprimario_t struct.
+	@see Current_State
+**/
 bool PresState(dprim_state_t state)
 {
 	bool rtn=0;
@@ -184,8 +217,12 @@ void CurrentState(dprimario_t *prim)
 	Nodes_Config(prim);
 	
 	if(((prim->previous_state!=prim->state)&&(PresState(prim->state)))||(prim->previous_comm_state!=prim->comm_status)
-	 ||((prim->active_nodes<prim->min_node)&&(!prim->Incomplete_flag)))
+	 ||((prim->active_nodes<prim->min_node)&&(!prim->Incomplete_flag))||(prim->node_update))
 	{	
+		if(prim->node_update){
+			prim->node_update=0;
+		}
+		
 		prim->Line_Counter++;
 		prim->previous_state=prim->state;	
 		prim->previous_comm_state=prim->comm_status;
@@ -302,11 +339,13 @@ void CurrentState(dprimario_t *prim)
 	}	  
 }
 
-/*
- * 
- * */
-//COMENTAR
-
+// This task allow us to delete the content of the given file.
+/** There are several tasks related to the Maintenance of the system, some of then involves
+ * delete certain files such as "dhcplist.txt" and "STATES_LOG.txt". 
+	
+	@param file_name const char * name of the file to be cleared.
+	@see RF_Maintenance_thread
+**/
 void File_Clean(const char * file_name)
 {
 	FILE * aux;
@@ -380,9 +419,27 @@ void Kill_Them_All(void)
 	}
 }
 
-//COMENTAR
-
 // Thread 4/4FIXING in charge of Executing Maintenance Tasks when needed 
+/** The system keeps  track of different error cases related to RF Communication:
+ *      # Error(NO COMM)
+ *      # Incomplete(Parcial COMM)
+ * 
+ * Error: means that there is not even one RF device connected, the system follows a 
+ * specific protocol for this cases that consists in "channel surfinng", based on 
+ * the experience and the RF spectrum three channels were selected from the 125 channels
+ * available to be used as an alternative in case we do not receive any message in a
+ * channel on a specific time.
+ * 
+ * Incomplete: Makes reference to the case where we do have communication with one or more
+ * RF Secondary device but no enough to reach the min nodes value configured, for example:
+ * if we expect 2 nodes and we  only have messages from one device.
+ * 
+ * This task is in charge of restart the full RF Communication scheme in order to try 
+ * to solve a reduced set of possible errors.   
+	
+	@note It is blocked until the "give" action of the semaphore.
+	@see CurrentState, thread_handler 
+**/
 void* RF_Maintenance_thread (void*parmthread)
 {
 	while(1){
@@ -691,7 +748,8 @@ static void PRESTUCK(dprimario_t * prim)
 	@note this function works as a link with the 'antirebote.cpp' module                                                                               
 	@see primUpdates
 **/
-void ButtonUpdates(dprimario_t * prim){
+void ButtonUpdates(dprimario_t * prim)
+{
 	bool state=FALSE;
 	if(Timeout_Polling(prim)){
 		state = get_State(&prim->boton1);		
@@ -1173,6 +1231,7 @@ bool primInit(dprimario_t * pPrimario)
 	pPrimario->Line_Counter=0;
 	pPrimario->Incomplete_counter=0;
 	pPrimario->min_node=0;
+	pPrimario->node_update=0;
 	pPrimario->previous_comm_state=INITIAL_COMM_DEFAULT_STATE;
 	pPrimario->timeout= DEF_TIMEOUT;
 	delayInit( &pPrimario->delay,pPrimario->timeout);

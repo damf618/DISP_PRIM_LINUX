@@ -200,6 +200,22 @@ bool PresState(dprim_state_t state)
 	return rtn;
 }
 
+// Whenever a change of state originated , it resets the transition conditions
+/** There is a time limit to receive a Comm code, if a RF code was received calling
+ * this function resets the timer count.     
+	
+	@param prim struct dprimario_t containing the entire variables needed fot the system.
+	@see FullCheck, ButtonCheck, CommCheck
+**/
+static void ResetChange(dprimario_t * prim)
+{
+	delayInit( &prim->delay,prim->timeout);  //Reset the timeout transition
+	FireComm.RF24DPReset();					 //Reset the UART Listening Process
+	prim->count=0;							 //Reset the count of number of cycles
+	prim->COMMFLAG=0;						 //Reset the UART flag
+}
+
+
 // Notification of the users and update of the Log files 
 /** This function is in charge of the update of the system, it prints on the console the
  * current state of the system and also if there was a change of state between calls, it 
@@ -215,6 +231,11 @@ void CurrentState(dprimario_t *prim)
 	char INCOMPLETE[20];
 	
 	Nodes_Config(prim);
+	
+	//If the COmmunications are being made correctly then reset the timeout
+	if(prim->active_nodes>0){
+		ResetChange(prim);
+	}
 	
 	if(((prim->previous_state!=prim->state)&&(PresState(prim->state)))||(prim->previous_comm_state!=prim->comm_status)
 	 ||((prim->active_nodes<prim->min_node)&&(!prim->Incomplete_flag))||(prim->node_update))
@@ -672,21 +693,6 @@ bool Timeout_Polling(dprimario_t * prim)
 	return timeout;
 }
 
-// Whenever a change of state originated , it resets the transition conditions
-/** There is a time limit to receive a Comm code, if a RF code was received calling
- * this function resets the timer count.     
-	
-	@param prim struct dprimario_t containing the entire variables needed fot the system.
-	@see FullCheck, ButtonCheck, CommCheck
-**/
-static void ResetChange(dprimario_t * prim)
-{
-	delayInit( &prim->delay,prim->timeout);  //Reset the timeout transition
-	FireComm.RF24DPReset();					 //Reset the UART Listening Process
-	prim->count=0;							 //Reset the count of number of cycles
-	prim->COMMFLAG=0;						 //Reset the UART flag
-}
-
 // To verify if we are stuck in the middle of a transition (PRE-STATE) or in a
 // waiting in a principal state (ALARM, NORMAL ,FAIL).
 /** There is a time limit to receive a Comm code, if the timeoput event is present 
@@ -852,6 +858,8 @@ dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t c
 		}
 		else
 		{
+			//Clean the List of Updated Nodes
+			AUX=FireComm.Get_Code();
 			comm_state=NO_STATE;
 		}
 	}
@@ -881,6 +889,7 @@ static Contact_state_t Local_Fire_Event(dprimario_t * prim,dprim_state_t casea,d
 	dprim_state_t state=NO_STATE;
 	state = ButtonCheck(prim,casea,casen,ALARM);
 	
+	/*ACTUALIZA SI HAY TRANSICION ??*/
 	if(prim->Comm_Transition)
 	{
 		if(prim->Alarm_Transition)
@@ -892,7 +901,7 @@ static Contact_state_t Local_Fire_Event(dprimario_t * prim,dprim_state_t casea,d
 		}
 	}
 	
-	if(state!=NO_STATE)
+	else if(state!=NO_STATE)
 	{
 		if((state!=casea)&&(state!=casen))
 		{
@@ -995,6 +1004,7 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 	bool Event=0; 
 	bool Comm_Event=0;
 	bool error_detected=NO_ERROR;
+	
 	Contact_state_t Failure_event= Local_Fail_Event(prim,casef, casen);
 	Contact_state_t Alarm_event=Local_Fire_Event(prim,casea,casen);
 	
@@ -1045,12 +1055,14 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 #endif			
 			break;
 	}
+	
+	Comm=CommCheck(prim,casea,casef,casen,caseaf);
+	
 	if(prim->comm_status==OK)
 	{
-		Comm=CommCheck(prim,casea,casef,casen,caseaf);
+		//Comm=CommCheck(prim,casea,casef,casen,caseaf);
 		if(Comm!=NO_STATE)
 		{
-			ResetChange(prim);
 			if(Comm!=prim->Comm_Alarm_state){
 				prim->Comm_Alarm_state=Comm;
 				Event=1;

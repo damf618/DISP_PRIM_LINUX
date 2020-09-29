@@ -107,6 +107,24 @@ bool Header_Validation(int id, int Code, RF_List_t* RF_List){
 	return rtn;
 }
 
+void Comm_Nodes(RF_List_t* RF_List){
+	int i;
+	int counter=0;
+	RF_Device_t * Mem_Block;
+	
+	for(i=0;i<RF_List->counter;i++)
+	{
+		Mem_Block=RF_List->RF_Devices[i];
+		if(Mem_Block[0].updated)
+		{
+			counter++;
+			Mem_Block[0].updated=0;
+		}
+	}
+	printf("# N Nodes----Get_Node: %d\n",counter);
+	RF_List->active_nodes = counter;
+}
+
 //The link between RF Communication and primario4, this funciton returns the corresponding
 //code based on the RF_List generated between calls.
 /** If we received a RF message with a valid code, we save the id and the code sent. This
@@ -593,12 +611,13 @@ char RF24DP::RF24DPRead(void){
 int RF24DP::Get_Code(void){
 	int rtn;
 	rtn = Comm_Code(&RF_List);
-	Active_nodes=RF_List.active_nodes;	
+	Active_nodes=RF_List.active_nodes;
 	return rtn;
 }
 
 // COMENTAR
 int RF24DP::Get_Nodes(void){
-	
+	//Comm_Nodes(&RF_List);
+	//Active_nodes=RF_List.active_nodes;
 	return Active_nodes;
 }

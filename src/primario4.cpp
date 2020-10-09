@@ -12,21 +12,18 @@
 #include "antirebote.h"
 #include "Primario_LEDS.h"
 #include <cstdbool>
-#include <cstdio>
 #include <stdio.h>  /* for puts() */
 #include <string.h> /* for memset() */
 #include <unistd.h> /* for sleep() */
 #include <stdlib.h> /* for EXIT_SUCCESS */
 #include <stdbool.h>
+
 #include <RFinterface.h>
+#include <files_handler.h>
 
 #include <signal.h> 
-#include "time.h"  
 
 /*=====[Definition macros of private constants]==============================*/
-
-unsigned int counter=0;
-bool hoopingchannel=true;
 
 dprimario_t prim;
 volatile sig_atomic_t sig_flag;
@@ -44,8 +41,6 @@ sem_t Comm_error_sem;
 timer_t timerid;
 struct sigevent sev;
 struct itimerspec trigger;
-
-FILE * statesfd;
 
 // Block of any of the unexpected signals
 /** The system is based on Linux SO, to avoid the interference of unexpected signals,
@@ -93,20 +88,6 @@ static void SIG_Handler(int sig)
 	sig_flag=TRUE;				      
 }
 
-// Timestamp Generator
-/** The system is based on Linux SO, this function generates the date/time stamp to print
- * on the log file andweb server.   
-	
-	@param actualtime char array to savethe date/time values.
-	@see CurrentState, Check_thread
-**/
-void timestamp(char * actualtime)
-{
-    time_t ltime; 										// calendar time 
-    ltime=time(NULL); 									// get current cal time 
-    sprintf(actualtime,asctime(localtime(&ltime)));
-}
-
 // Reset of the previous states used to compare an event  
 /** In order for the system to notify a new event it needs to acknowledge which is the
  *  current state, to make this comparison we save the previous state of the entire 
@@ -145,37 +126,6 @@ void thread_handler(union sigval sv)
    }
 }
 
-// Extract the number of nodes stablished in the file Config.txt
-/** The system keeps track of how many RF Devices are actively communicating with the
- * master device, in case there are fewer active nodes than the mininum number of nodes 
- * stablished, the Incomplete status is activated alongside the Incomplete protocol, the
- * configurartion of the minimun nomber of nodes, is made through a web gui.
-	
-	@param prim struct dprimario_t containing the entire variables needed fot the system.
-	@see Current_State
-**/
-void Nodes_Config(dprimario_t * prim){
-	int n_node=0;
-	FILE *fptr;
-	fptr = fopen("Config.txt","r");
-	
-	if(fptr == NULL)
-	{
-		printf("Not possible to Update Nodes");              
-	}else
-	{
-		n_node = fgetc(fptr)-48;		//THe file is read using the ascii table
-		if(n_node!=prim->min_node)
-		{
-			prim->min_node=n_node;
-			RF_Comm_Nodes_Update(n_node);
-			prim->node_update=1;
-		}
-	fclose(fptr);
-	}
-	
-}
-
 // We do not want to send notification if we are on a "Transitional state", this function
 // allows us to verify the current state.
 /** The system uploads the current state in different platforms through a csv file, we 
@@ -211,6 +161,38 @@ static void ResetChange(dprimario_t * prim)
 	prim->COMMFLAG=0;						 //Reset the UART flag
 }
 
+// FILE AGREGAR A FILE
+
+// Extract the number of nodes stablished in the file Config.txt
+/** The system keeps track of how many RF Devices are actively communicating with the
+ * master device, in case there are fewer active nodes than the mininum number of nodes 
+ * stablished, the Incomplete status is activated alongside the Incomplete protocol, the
+ * configurartion of the minimun nomber of nodes, is made through a web gui.
+	
+	@param prim struct dprimario_t containing the entire variables needed fot the system.
+	@see Current_State
+**/
+void Nodes_Config(dprimario_t * prim){
+	int n_node=0;
+	FILE *fptr;
+	fptr = fopen("Config.txt","r");
+	
+	if(fptr == NULL)
+	{
+		printf("Not possible to Update Nodes");              
+	}else
+	{
+		n_node = fgetc(fptr)-48;		//THe file is read using the ascii table
+		if(n_node!=prim->min_node)
+		{
+			prim->min_node=n_node;
+			RF_Comm_Nodes_Update(n_node);
+			prim->node_update=1;
+		}
+		fclose(fptr);
+	}
+}
+
 
 // Notification of the users and update of the Log files 
 /** This function is in charge of the update of the system, it prints on the console the
@@ -223,7 +205,11 @@ static void ResetChange(dprimario_t * prim)
 **/
 void CurrentState(dprimario_t *prim)
 {
-	char CSTATE[50];
+	 char NODES[50];
+	 char STATE[50];
+	 char RF[50];
+	 
+	//char CSTATE[50];
 	char INCOMPLETE[20];
 	
 	Nodes_Config(prim);
@@ -243,6 +229,8 @@ void CurrentState(dprimario_t *prim)
 		prim->Line_Counter++;
 		prim->previous_state=prim->state;	
 		prim->previous_comm_state=prim->comm_status;
+		/*
+		// funcion que reciba linecounter y decida a partir de ahi
 		if(prim->Line_Counter>=N_RECORD_EVENTS)
 		{
 			statesfd = fopen("STATES_LOG.txt","w+");
@@ -252,68 +240,82 @@ void CurrentState(dprimario_t *prim)
 		}
 		while(statesfd == NULL)
 		{
-			if(prim->Line_Counter>=10)
+			if(prim->Line_Counter>=N_RECORD_EVENTS)
 			{
 			statesfd = fopen("STATES_LOG.txt","w+");
-			}else{
+			}else
+			{
 			statesfd = fopen("STATES_LOG.txt","a");
 			}
 			usleep(ERROR_INTERVALM);
 		};
-	
+		
+		//eliminar ambas, se ejecutan siempre al enviar el dato
 		timestamp(CSTATE);
 		fprintf(statesfd,CSTATE, sizeof(CSTATE));
 
+		*/
+		
 		switch( prim->state )
 		{
 			case PRENORMAL:
 				printf("\r\n CURRENT STATE: PRE-NORMAL \r\n");
-				sprintf(CSTATE,"PRENORMAL\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				sprintf(STATE,"PRENORMAL\n");
+				//sprintf(CSTATE,"PRENORMAL\n");
+				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case PREALARM:
 				printf("\r\n CURRENT STATE: PRE-ALARM \r\n");
-				sprintf(CSTATE,"PREALARM\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				sprintf(STATE,"PREALARM\n");
+				//sprintf(CSTATE,"PREALARM\n");
+				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case PREFAIL:
 				printf("\r\n CURRENT STATE: PRE-FAIL \r\n");
-				sprintf(CSTATE,"PREFAIL\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				sprintf(STATE,"PREFAIL\n");
+				//sprintf(CSTATE,"PREFAIL\n");
+				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case PRE_ALARM_FAIL:
 				printf("\r\n CURRENT STATE: PRE ALARM/FAIL\r\n");
-				sprintf(CSTATE,"PRE_ALARM_FAIL\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				sprintf(STATE,"PRE_ALARM_FAIL\n");
+				//sprintf(CSTATE,"PRE_ALARM_FAIL\n");
+				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case NORMAL:
 				printf("\r\n CURRENT STATE: NORMAL \r\n");
-				sprintf(CSTATE,"NORMAL\n");
-				printf("%s\n",CSTATE);
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				sprintf(STATE,"NORMAL\n");
+				//sprintf(CSTATE,"NORMAL\n");
+				//printf("%s\n",CSTATE);
+				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case FAIL:
 				printf("\r\n CURRENT STATE: FAIL\r\n");
-				sprintf(CSTATE,"FAIL\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				sprintf(STATE,"FAIL\n");
+				//sprintf(CSTATE,"FAIL\n");
+				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case ALARM:
 				printf("\r\n CURRENT STATE: ALARM\r\n");
-				sprintf(CSTATE,"ALARM\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				sprintf(STATE,"ALARM\n");
+				//sprintf(CSTATE,"ALARM\n");
+				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case ALARM_FAIL:
 				printf("\r\n CURRENT STATE: ALARM/FAIL \r\n");
-				sprintf(CSTATE,"ALARM_FAIL\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				sprintf(STATE,"ALARM_FAIL\n");
+				//sprintf(CSTATE,"ALARM_FAIL\n");
+				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			default:
 				printf("\r\n CURRENT STATE NOT DEFINED: %d\r\n",prim->state);
-				sprintf(CSTATE,"ERROR\n");
-				fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				sprintf(STATE,"ERROR\n");
+				//sprintf(CSTATE,"ERROR\n");
+				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 		}
 		if((prim->active_nodes<prim->min_node)&&(!prim->Incomplete_flag))
 		{
+//=+++++++++++++++++++++++=++++++++++++++++++++++LOOOOK OUT !!!!=+++++++++++++++++++++=+++++++++++++++
 			printf("Incomplete for me");
 			prim->Incomplete_flag=1;
 			timer_settime(timerid, 0, &trigger, NULL);
@@ -327,59 +329,43 @@ void CurrentState(dprimario_t *prim)
 			switch(prim->comm_status)
 			{
 				case OK:
-					sprintf(CSTATE,"COMM OK!%s\n",INCOMPLETE);
-					fprintf(statesfd,CSTATE, sizeof(CSTATE));
+					sprintf(RF,"COMM OK!%s\n",INCOMPLETE);
+					//sprintf(CSTATE,"COMM OK!%s\n",INCOMPLETE);
+					//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 					break;
 				case ERROR:
-					sprintf(CSTATE,"COMM ERROR\n");
-					fprintf(statesfd,CSTATE, sizeof(CSTATE));
+					sprintf(RF,"COMM ERROR\n");
+					//sprintf(CSTATE,"COMM ERROR\n");
+					//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 					sem_post(&Comm_error_sem);
 					break;
 				case HOPPING:
-					sprintf(CSTATE,"COMM HOPPING\n");
-					fprintf(statesfd,CSTATE, sizeof(CSTATE));
+					sprintf(RF,"COMM HOPPING\n");
+					//sprintf(CSTATE,"COMM HOPPING\n");
+					//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 					break;	
 				case FIXING:
-					sprintf(CSTATE,"COMM FIXING\n");
-					fprintf(statesfd,CSTATE, sizeof(CSTATE));
+					sprintf(RF,"COMM FIXING\n");
+					//sprintf(CSTATE,"COMM FIXING\n");
+					//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 					break;	
 			}
 		}
 		else{
-			sprintf(CSTATE,"COMM OK! \n");
-			fprintf(statesfd,CSTATE, sizeof(CSTATE));
+			sprintf(RF,"COMM OK! \n");
+			//sprintf(CSTATE,"COMM OK! \n");
+			//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 		}
-		sprintf(CSTATE,"ACTIVES NODES -> %d\n",prim->active_nodes);
-		fprintf(statesfd,CSTATE, sizeof(CSTATE));
+		sprintf(NODES,"ACTIVES NODES -> %d\n",prim->active_nodes);
+		//sprintf(CSTATE,"ACTIVES NODES -> %d\n",prim->active_nodes);
+		//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 		prim->previous_active_nodes=prim->active_nodes;
-		fclose(statesfd);
+		//eliminar
+		//fclose(statesfd);
+		
+		File_Update(&prim->Line_Counter,STATE,RF,NODES);
+
 	}	  
-}
-
-// This task allow us to delete the content of the given file.
-/** There are several tasks related to the Maintenance of the system, some of then involves
- * delete certain files such as "dhcplist.txt" and "STATES_LOG.txt". 
-	
-	@param file_name const char * name of the file to be cleared.
-	@see RF_Maintenance_thread
-**/
-void File_Clean(const char * file_name)
-{
-	FILE * aux;
-	aux = fopen(file_name, "w+");
-
-	if (aux == NULL)
-	{
-		printf("Error cleaning the file: %s\n",file_name);
-	}
-	if(FALSE==fclose(statesfd))
-	{
-		printf("Succesfull Clean of file: %s\n",file_name);
-	}
-		else
-		{
-			printf("Error cleaning the file: %s\n",file_name);
-		}
 }
 
 // Organized Exit of the system
@@ -418,13 +404,6 @@ void Kill_Them_All(void)
 			{
 				perror("Succesfully Joined Thread");
 			}
-		}
-		if(FALSE==fclose(statesfd)){
-			perror("Log Succesfully closed");
-		}
-		else
-		{
-			perror("Error Closing the File");
 		}
 		printf("Freeing Dynamic Memory\n");
 		RF_Comm_Clean();
@@ -579,16 +558,17 @@ int Init_All(void)
 	trigger.it_value.tv_sec = 5;
 	
 	//Creacion de Archivos .txt
-	statesfd = fopen("STATES_LOG.txt", "w+");
+	//statesfd = fopen("STATES_LOG.txt", "w+");
 
-	if (statesfd == NULL) {
-		printf("Error creating opening the file: STATES_LOG.txt.\n");
-		while(true){
-		}
-	}
-	
-	fprintf(statesfd,"Inicializando Equipo\n");
-	fclose(statesfd);
+	//if (statesfd == NULL) {
+	//	printf("Error creating opening the file: STATES_LOG.txt.\n");
+	//	while(true){
+	//	}
+	//}
+	Init_File();
+	//statesfd = fopen("STATES_LOG.txt", "w+");
+	//fprintf(statesfd,"Inicializando Equipo\n");
+	//fclose(statesfd);
 	
 	File_Clean("dhcplist.txt");
 

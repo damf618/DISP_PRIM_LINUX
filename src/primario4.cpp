@@ -13,12 +13,12 @@
 #include "Primario_LEDS.h"
 #include <cstdbool>
 #include <cstdio>
-#include <RF24DP.h>
 #include <stdio.h>  /* for puts() */
 #include <string.h> /* for memset() */
 #include <unistd.h> /* for sleep() */
 #include <stdlib.h> /* for EXIT_SUCCESS */
 #include <stdbool.h>
+#include <RFinterface.h>
 
 #include <signal.h> 
 #include "time.h"  
@@ -27,10 +27,6 @@
 
 unsigned int counter=0;
 bool hoopingchannel=true;
-
-RF24 radio (22,0);
-RF24Network network(radio);
-RF24DP FireComm(radio,network);
 
 dprimario_t prim;
 volatile sig_atomic_t sig_flag;
@@ -172,7 +168,7 @@ void Nodes_Config(dprimario_t * prim){
 		if(n_node!=prim->min_node)
 		{
 			prim->min_node=n_node;
-			FireComm.NnodesUpdate(n_node);
+			RF_Comm_Nodes_Update(n_node);
 			prim->node_update=1;
 		}
 	fclose(fptr);
@@ -210,7 +206,7 @@ bool PresState(dprim_state_t state)
 static void ResetChange(dprimario_t * prim)
 {
 	delayInit( &prim->delay,prim->timeout);  //Reset the timeout transition
-	FireComm.RF24DPReset();					 //Reset the UART Listening Process
+	RF_Comm_Reset();						 //Reset the UART Listening Process
 	prim->count=0;							 //Reset the count of number of cycles
 	prim->COMMFLAG=0;						 //Reset the UART flag
 }
@@ -232,7 +228,7 @@ void CurrentState(dprimario_t *prim)
 	
 	Nodes_Config(prim);
 	
-	//If the COmmunications are being made correctly then reset the timeout
+	//If the Communications are being made correctly then reset the timeout
 	if(prim->active_nodes>0){
 		ResetChange(prim);
 	}
@@ -431,7 +427,7 @@ void Kill_Them_All(void)
 			perror("Error Closing the File");
 		}
 		printf("Freeing Dynamic Memory\n");
-		FireComm.Clean_RFDevices();
+		RF_Comm_Clean();
 		
 		printf("Cleaning List  of RF Devices\n");
 		File_Clean("dhcplist.txt");
@@ -469,9 +465,9 @@ void* RF_Maintenance_thread (void*parmthread)
 		pthread_mutex_lock (&mutexconsola);
 		pthread_mutex_lock (&mutexfile);
 		File_Clean("dhcplist.txt");
-		FireComm.Clean_RFDevices();
+		RF_Comm_Clean();
 		RF_Reset_State(&prim);
-		FireComm.Maintenance_clean();
+		RF_Comm_Maintenance();
 		pthread_mutex_unlock (&mutexfile);
 		pthread_mutex_unlock (&mutexconsola);
 		pthread_mutex_unlock (&mutexspi);
@@ -836,8 +832,8 @@ dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t c
 	dprim_state_t comm_state=NO_STATE;	
 	
 	if(Timeout_Polling(prim)){		//Verify if the Timeout transition limit
-		if((FireComm.RF24DPRead()==Comm_received)){  //Was an Alarm code received?
-			AUX=FireComm.Get_Code();
+		if((RF_Comm_Read()==Comm_received)){  //Was an Alarm code received?
+			AUX=RF_Comm_Code();
 			if(AUX==ALARM_FAIL_CODE){
 				comm_state=caseaf;
 			}
@@ -859,7 +855,7 @@ dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t c
 		else
 		{
 			//Clean the List of Updated Nodes
-			AUX=FireComm.Get_Code();
+			AUX=RF_Comm_Code();
 			comm_state=NO_STATE;
 		}
 	}
@@ -1202,16 +1198,10 @@ void primUpdates(dprimario_t * pPrimario)
 	PRESTUCK(pPrimario);	
     fsmUpdate(&pPrimario->boton1);					//Update of all the MEFSs involved
 	fsmUpdate(&pPrimario->boton2);
-	pPrimario->comm_status=FireComm.Comm_Status();	
-	FireComm.RF24DPUpdate(network);
+	pPrimario->comm_status= RF_Comm_Status();
+	RF_Comm_Update();
 	ButtonUpdates(pPrimario);
-	pPrimario->active_nodes=FireComm.Get_Nodes();
-	/*
-	if(ERROR==pPrimario->comm_status)
-	{
-		sem_post(&Comm_error_sem);	
-	}
-	*/
+	pPrimario->active_nodes=RF_Comm_Nodes();
 }
 
 // It sets initial conditions for the entire program
@@ -1251,9 +1241,7 @@ bool primInit(dprimario_t * pPrimario)
 	LEDsON(0,0,0);
 	fsmInit(&pPrimario->boton1,ALARM_BUTTON);	//Initialize buttons with "antirebote" protocol
 	fsmInit(&pPrimario->boton2,FAIL_BUTTON);
-	FireComm.Init(); //Initialize uart1 through UART_USB
-	FireComm.Set_Up(); //Initialize uart1 through UART_USB
-	radio.printDetails();
+	RF_Comm_Init();
 	return 1;
 }
 

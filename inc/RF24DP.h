@@ -1,13 +1,6 @@
 #ifndef RF24DP_H
 #define RF24DP_H
 
-//We need the C++ Compiler
-/*
-#ifdef __cplusplus
-extern "C" {
-#endif
-*/
-
 #include <delay.h>
 #include <stdio.h>
 #include "RF24.h"
@@ -113,38 +106,33 @@ class RF24DP : public RF24Mesh	{
 		RF_List_t RF_List;
 		int Active_nodes=0;
 		
+		ReceiveOrTimeoutState_t  Wait_for_Code (RF24Network& netw);
+		void RF24ChannelHop(void);
+		void RF24ErrorManage(void);
+		void Set_Channel(uint8_t Channel, uint32_t timeout);
+		void Writing_Data(void); 
+		bool Read_Status(void);
+		void Read_Data (RF24Network& netw);
+		
+		
 	public:
 		
 		RF24DP(RF24& _radio, RF24Network& _network):RF24Mesh{_radio,_network}{
 			RF24Mesh( _radio , _network);  
 		}	
-		void Init(void);
-		void Set_Up(void);
-		void Set_Channel(uint8_t Channel, uint32_t timeout); 
+		void Init(void);						//already
+		void Set_Up(void);						//already
 		void Init(char CE, char CSN, char Num, char CA, char CF, char SC, char Reset, unsigned int timeout);
 		void Set_Up(char intentos, char tiempo, char Canal);
-		void Writing_Data(void); 
-		bool Read_Status(void);
-		void Normalization_Delay(void);
-		void Read_Data (RF24Network& netw);
-		ReceiveOrTimeoutState_t  Wait_for_Code (RF24Network& netw);
-		void RF24DPReset(void);
-		void RF24DPUpdate(RF24Network& netw);
-		char RF24DPRead(void);
-		void RF24ChannelHop(void);
-		void RF24ErrorManage(void);
-		int Get_Code(void);
-		int Get_Nodes(void);
-		int Comm_Status(void);
-		void Maintenance_clean(void);
-		void Clean_RFDevices(void);
-		void NnodesUpdate(int nnodes);
+		void RF24DPReset(void);					//already
+		void RF24DPUpdate(RF24Network& netw);	//already
+		char RF24DPRead(void);					//already
+		int Get_Code(void);						//already
+		int Get_Nodes(void);					//already
+		int Comm_Status(void);					//already
+		void Maintenance_clean(void);			//already
+		void NnodesUpdate(int nnodes);			//already
+		void Clean_RFDevices(void);				//already
 };
-
-/*
-#ifdef __cplusplus
-}
-#endif
-*/
 
 #endif 

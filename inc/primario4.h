@@ -65,10 +65,15 @@ extern "C" {
 #define UPDATE_INTERVALU 10000
 #define CONTROL_INTERVALU 200000 //200000   MODIFICAR EL ALGORITMO PARA QUE NO SEA ALGOPUNTUALSINO ALGO ACUMULATIVODE ESTADOS! DURANTE MAS TIEMPO EXISTENDEMASIADOS COMM8 Y ALOMENTO DE RECIBIR UNO DISTINTO ESTAMOS CAMBIANDO TODO!
 #define ERROR_INTERVALM 150000
-//#define N_NODES 2
 #define MAX_INCOMPLETE_ERRORS 5
 #define N_RECORD_EVENTS 3000
 
+#define EMPTY_CODE 333
+#define NORMAL_CODE 321
+#define FAIL_CODE 654
+#define ALARM_CODE 987
+#define ALARM_FAIL_CODE 258
+#define RESET_REQUEST 999
 /*=====[Public function-like macros]=========================================*/
 
 /*=====[Definitions of public data types]====================================*/

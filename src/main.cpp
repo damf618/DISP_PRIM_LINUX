@@ -1,4 +1,4 @@
-#include "primario4.h"
+#include "System.h"
 
 using namespace std;
 

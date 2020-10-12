@@ -1,9 +1,9 @@
 #ifndef FILES_HANDLER_H
 #define FILES_HANDLER_H
 
-#include <stdlib.h> /* for EXIT_SUCCESS */
+#include <stdlib.h> 
 
-#define N_RECORD_EVENTS 4000
+
 #define ERROR_INTERVALM 150000
 #define FILE_NAME "STATES_LOG.txt"
 
@@ -24,8 +24,6 @@ void timestamp(char * actualtime);
 void File_Clean(const char * file_name);
 
 void Init_File(void);
-
-bool Close_File(void);
 
 void File_Update(u_int16_t* Line_Counter,char* STATE, char* RF, char* NODES);
 

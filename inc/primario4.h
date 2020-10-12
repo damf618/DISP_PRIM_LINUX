@@ -152,6 +152,12 @@ bool primControl(dprimario_t * pPrimario);
 **/
 void primUpdates(dprimario_t * pPrimario);
 
+
+void CurrentState(dprimario_t *prim);
+
+void Nodes_Config(dprimario_t * prim);
+
+
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 
 /*=====[C++ - end]===========================================================*/

@@ -8,13 +8,10 @@
 
 /*=====[Avoid multiple inclusion - begin]====================================*/
 
-#ifndef __FILE_INTERFACE_H__
-#define __FILE_INTERFACE_H__
+#ifndef __SYSTEM_H__
+#define __SYSTEM_H__
 
-
-#include <stdlib.h> 
-
-#define N_RECORD_EVENTS 4000
+#include "primario4.h"
 
 /*=====[C++ - begin]=========================================================*/
 
@@ -22,26 +19,10 @@
 extern "C" {
 #endif
 
-// Timestamp Generator
-/** The system is based on Linux SO, this function generates the date/time stamp to print
- * on the log file andweb server.   
-	
-	@param actualtime char array to savethe date/time values.
-	@see CurrentState, Check_thread
-**/
-void timestamp(char * actualtime);
-
-//Init File Interface
-void Init_File_Interface(void); 
-
-//Clean File Interface
-void Clean_File_Interface(const char * file_name);
-
-//Update File Interface
-void Update_File_Interface(u_int16_t* Line_Counter,char* STATE, char* RF, char* NODES);
-
+/*=====[Definition macros of public constants]===============================*/
 
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/
+int Init_All(void);
 
 /*=====[C++ - end]===========================================================*/
 
@@ -51,4 +32,4 @@ void Update_File_Interface(u_int16_t* Line_Counter,char* STATE, char* RF, char* 
 
 /*=====[Avoid multiple inclusion - end]======================================*/
 
-#endif /* __PRIMARIO_H__ */
+#endif /* __SYSTEM_H__ */

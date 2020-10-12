@@ -1,22 +1,8 @@
+#include <File_Interface.h>
 #include <files_handler.h>
 #include "time.h"  
 #include <cstdio>
 #include <unistd.h>
-
-// Timestamp Generator
-/** The system is based on Linux SO, this function generates the date/time stamp to print
- * on the log file andweb server.   
-	
-	@param actualtime char array to savethe date/time values.
-	@see CurrentState, Check_thread
-**/
-//static void timestamp(char * actualtime)
-void timestamp(char * actualtime)
-{
-    time_t ltime; 										// calendar time 
-    ltime=time(NULL); 									// get current cal time 
-    sprintf(actualtime,asctime(localtime(&ltime)));
-}
 
 void Init_File(void){
 	

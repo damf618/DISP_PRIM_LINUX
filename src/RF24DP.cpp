@@ -210,6 +210,7 @@ void RF24DP:: Init(void){
 	RF_List.n_nodes=0;
 	RF_List.active_nodes=0;
 	Active_nodes=0;
+	Data_RF_List.Counter=0;
 }
 
 // Indicate the number of actives nodes obtain during the RF_List check
@@ -417,7 +418,7 @@ char RF24DP::RF24DPRead(void){
 // COMENTAR
 int RF24DP::Get_Code(void){
 	int rtn;
-	rtn = Comm_Code(&RF_List);
+	rtn = Comm_Code(&RF_List,&Data_RF_List);
 	Active_nodes=RF_List.active_nodes;
 	return rtn;
 }
@@ -427,4 +428,8 @@ int RF24DP::Get_Nodes(void){
 	//Comm_Nodes(&RF_List);
 	//Active_nodes=RF_List.active_nodes;
 	return Active_nodes;
+}
+
+Nodes_Database_t RF24DP::Nodes_Database(void){
+	return Data_RF_List;
 }

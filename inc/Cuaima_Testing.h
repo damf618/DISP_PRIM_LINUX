@@ -29,6 +29,7 @@ extern "C" {
 
 /*=====[Definition macros of public constants]===============================*/
 #define MAX_RF_DEVICES 100
+#define RF_DEVICE_DATA 2
 /*=====[Public function-like macros]=========================================*/
 
 /*=====[Definitions of public data types]====================================*/
@@ -39,6 +40,11 @@ typedef struct RF_Device_s
 	int RF_Code;
 	bool updated;
 } RF_Device_t;
+
+typedef struct{
+	int Counter;
+	RF_Device_t Nodes_Data[MAX_RF_DEVICES];
+} Nodes_Database_t;
 
 typedef struct RF_List_s
 {
@@ -55,7 +61,7 @@ int Header_Check(int id, RF_List_t * RF_Devices);
 
 bool Header_Validation(int id, int Code, RF_List_t* RF_List);
 
-int Comm_Code(RF_List_t* RF_List);
+int Comm_Code(RF_List_t* RF_List,Nodes_Database_t* Data_RF_List);
 
 void Clean_RFDevices(RF_List_t* RF_List);
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/

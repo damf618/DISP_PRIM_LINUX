@@ -2,6 +2,7 @@
 #include "RF24.h"
 #include "RF24Network.h"
 #include "RF24Mesh.h"
+#include "Cuaima_Testing.h"
 
 RF24 radio (22,0);
 RF24Network network(radio);
@@ -50,11 +51,16 @@ void RF_Comm_Nodes_Update(int nnodes){
 	FireComm.NnodesUpdate(nnodes);
 }
  
-void RF_Comm_Clean(){
+void RF_Comm_Clean(void){
 	FireComm.Clean_RFDevices();
 }
 
-void RF_Comm_Maintenance(){
+void RF_Comm_Maintenance(void){
 	FireComm.Maintenance_clean();
 }
 
+Nodes_Database_t RF_Comm_Nodes_Database(void){
+	Nodes_Database_t rtn;
+	rtn = FireComm.Nodes_Database();
+	return rtn;
+}

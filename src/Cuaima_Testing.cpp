@@ -81,6 +81,13 @@ int Header_Check(int id, RF_List_t* RF_List){
 	return rtn;
 }
 
+static void Update_Node_Data(RF_Device_t RF_Device,Nodes_Database_t* Data_RF_List, int i){
+	Data_RF_List->Counter++;
+	Data_RF_List->Nodes_Data[i].Node_ID=RF_Device.Node_ID;
+	Data_RF_List->Nodes_Data[i].RF_Code=RF_Device.RF_Code;
+	Data_RF_List->Nodes_Data[i].updated=RF_Device.updated;
+}
+
 //The link between RF Communication and primario4, this funciton returns the corresponding
 //code based on the RF_List generated between calls.
 /** If we received a RF message with a valid code, we save the id and the code sent. This
@@ -100,7 +107,7 @@ int Header_Check(int id, RF_List_t* RF_List){
 	
 	@see Header_Validation.
 **/
-int Comm_Code(RF_List_t* RF_List){
+int Comm_Code(RF_List_t* RF_List,Nodes_Database_t* Data_RF_List){
 	int Final_Code;
 	bool Alarm=0;
 	bool Fail=0;
@@ -109,9 +116,13 @@ int Comm_Code(RF_List_t* RF_List){
 	RF_Device_t * Mem_Block;
 	printf("Number of Devices: %d\n",RF_List->counter);
 	
+	//WATCH************************/*/*/**/*/*//*/***/*/*/*/*//*/**/**/*
+	Data_RF_List->Counter=0;
+	
 	for(i=0;i<RF_List->counter;i++)
-	{
+	{	
 		Mem_Block=RF_List->RF_Devices[i];
+		Update_Node_Data(Mem_Block[0],Data_RF_List,i);
 		printf("#%d Device: %d\n",i,Mem_Block[0].Node_ID);
 		if(Mem_Block[0].updated)
 		{

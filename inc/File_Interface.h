@@ -11,7 +11,7 @@
 #ifndef __FILE_INTERFACE_H__
 #define __FILE_INTERFACE_H__
 
-
+#include "Cuaima_Testing.h"
 #include <stdlib.h> 
 
 #define N_RECORD_EVENTS 4000
@@ -40,6 +40,7 @@ void Clean_File_Interface(const char * file_name);
 //Update File Interface
 void Update_File_Interface(u_int16_t* Line_Counter,char* STATE, char* RF, char* NODES);
 
+void RF_Update_File_Interface(Nodes_Database_t Nodes_Data);
 
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

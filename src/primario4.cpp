@@ -221,7 +221,7 @@ void CurrentState(dprimario_t *prim)
 		if((prim->active_nodes<prim->min_node)&&(!prim->Incomplete_flag))
 		{
 //=+++++++++++++++++++++++=++++++++++++++++++++++LOOOOK OUT !!!!=+++++++++++++++++++++=+++++++++++++++
-			printf("Incomplete for me");
+			//printf("Incomplete for me");
 			prim->Incomplete_flag=1;
 			timer_settime(timerid, 0, &trigger, NULL);
 			sprintf(INCOMPLETE," (INCOMPLETE)");
@@ -268,8 +268,8 @@ void CurrentState(dprimario_t *prim)
 		//eliminar
 		//fclose(statesfd);
 		
-		Update_File_Interface(&prim->Line_Counter,STATE,RF,NODES);
-
+		Update_File_Interface(&prim->Line_Counter,STATE,RF,NODES);	
+		RF_Update_File_Interface(RF_Comm_Nodes_Database());
 	}	  
 }
 

@@ -12,7 +12,7 @@
 #define __DATABASE_H__
 
 #define database "db_test.db"
-
+#define RFdatabase "RF_db_test.db"
 
 
 /*=====[C++ - begin]=========================================================*/
@@ -21,10 +21,13 @@
 extern "C" {
 #endif
 
-int Init_database();
+int Init_database(void);
 
 int database_update(u_int16_t* Line_Counter,char* STATE, char* RF, char* NODES);
 
+int RF_database_update(int ID,int CODE,int STATUS);
+
+int Init_RF_database(void);
 
 /*=====[Prototypes (declarations) of public interrupt functions]=============*/
 

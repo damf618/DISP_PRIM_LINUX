@@ -74,6 +74,7 @@ typedef enum{
    RECEIVE_TIMEOUT
 } ReceiveOrTimeoutState_t;
 
+
 typedef struct{
 	ReceiveOrTimeoutState_t state;
 	char*    string;
@@ -104,6 +105,7 @@ class RF24DP : public RF24Mesh	{
 		bool fixing = 0;
 		bool reset_request =0;
 		RF_List_t RF_List;
+		Nodes_Database_t Data_RF_List;
 		int Active_nodes=0;
 		
 		ReceiveOrTimeoutState_t  Wait_for_Code (RF24Network& netw);
@@ -133,6 +135,8 @@ class RF24DP : public RF24Mesh	{
 		void Maintenance_clean(void);			//already
 		void NnodesUpdate(int nnodes);			//already
 		void Clean_RFDevices(void);				//already
+		
+		Nodes_Database_t Nodes_Database();
 };
 
 #endif 

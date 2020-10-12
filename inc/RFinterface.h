@@ -13,6 +13,7 @@
 
 /*=====[Inclusions of public function dependencies]==========================*/
 #include <RF24DP.h>
+#include <Cuaima_Testing.h>
 
 /** It sets initial conditions for the entire program, it establish the default values
  *  of timeout and #cycles for Alarm and Fail UART code verification.
@@ -112,7 +113,10 @@ void RF_Comm_Clean(void);
 	@see primControl.
 
 **/
-void RF_Comm_Maintenance();
+void RF_Comm_Maintenance(void);
+
+
+Nodes_Database_t RF_Comm_Nodes_Database(void);
 
 /*=====[C++ - end]===========================================================*/
 

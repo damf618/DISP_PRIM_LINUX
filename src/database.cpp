@@ -188,10 +188,10 @@ bool ID_Validation(int ID, sqlite3_stmt *stmt,sqlite3 *db ){
       sqlite3_finalize(stmt);
       return 1;
    }   
-   if(sqlite3_step(stmt)!= SQLITE_DONE) {
-      printf("\nCould not step (execute) stmt.\n");
-      sqlite3_finalize(stmt);
-      return 1;
+   if(sqlite3_step(stmt)!= SQLITE_ROW) {
+      //printf("\nCould not step (execute) stmt.\n");
+      //sqlite3_finalize(stmt);
+      //return 1;
    }
    
    data = sqlite3_column_int(stmt,0);

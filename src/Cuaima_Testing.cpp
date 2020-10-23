@@ -114,19 +114,25 @@ int Comm_Code(RF_List_t* RF_List,Nodes_Database_t* Data_RF_List){
 	int i;
 	int counter=0;
 	RF_Device_t * Mem_Block;
-	printf("Number of Devices: %d\n",RF_List->counter);
 	
-	//WATCH************************/*/*/**/*/*//*/***/*/*/*/*//*/**/**/*
+#if defined (DEBUG)
+			printf("Number of Devices: %d\n",RF_List->counter);
+#endif	
+	
 	Data_RF_List->Counter=0;
 	
 	for(i=0;i<RF_List->counter;i++)
 	{	
 		Mem_Block=RF_List->RF_Devices[i];
 		Update_Node_Data(Mem_Block[0],Data_RF_List,i);
-		printf("#%d Device: %d\n",i,Mem_Block[0].Node_ID);
+#if defined (DEBUG)
+			printf("#%d Device: %d\n",i,Mem_Block[0].Node_ID);
+#endif	
 		if(Mem_Block[0].updated)
 		{
+#if defined (DEBUG)
 			printf("#%d Device: %d,State: %d\n",i,Mem_Block[0].Node_ID,Mem_Block[0].RF_Code);
+#endif	
 			counter++;
 			Mem_Block[0].updated=0;
 			
@@ -148,12 +154,7 @@ int Comm_Code(RF_List_t* RF_List,Nodes_Database_t* Data_RF_List){
 		}
 	}
 	RF_List->active_nodes = counter;
-	//printf("active_nodes: %d\n",RF_List->active_nodes);
-	
-	//if(RF_List->counter!=counter)
-	//if((counter<RF_List->n_nodes)&&(RF_List->counter>=RF_List->n_nodes)){
-	//	RF_List->comm_incomplete=1;
-	//}
+
 	if((Alarm)&&(Fail))
 	{
 		Final_Code = ALARM_FAIL_CODE;

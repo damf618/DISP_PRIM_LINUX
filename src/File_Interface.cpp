@@ -23,6 +23,7 @@ void timestamp(char * actualtime)
 void Init_File_Interface(void){
     Init_File();
     Init_database();
+    Init_RF_database();
 }
 
 //Clean File Interface
@@ -39,7 +40,7 @@ void Update_File_Interface(u_int16_t* Line_Counter,char* STATE, char* RF, char* 
 void RF_Update_File_Interface(Nodes_Database_t Nodes_Info){
     int i=0;
     printf("\n----- RF DATABASE INFO ----- \n");
-    Init_RF_database();
+    //Init_RF_database();
     for(i=0;i<=Nodes_Info.Counter;i++){
 	if(Nodes_Info.Nodes_Data[i].Node_ID!=0){
 	    printf("RF Device ID: %d\n",Nodes_Info.Nodes_Data[i].Node_ID);

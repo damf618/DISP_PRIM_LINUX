@@ -2,6 +2,7 @@
 #include "RFinterface.h"
 #include "File_Interface.h"
 #include "primario4.h"
+#include "Debug_Logging.h"
 
 #include <cstdbool>
 #include <stdio.h>  /* for puts() */
@@ -46,9 +47,11 @@ void thread_handler(union sigval sv)
    pPrimario->Incomplete_flag=0;
    if(pPrimario->Incomplete_counter>=MAX_INCOMPLETE_ERRORS)
    {
+	   
+	   Debug_Message_Warning("Fire Monitor System: RF Devices Incomplete ");
 	   printf("Incomplete Reset\n");
 	   pPrimario->Incomplete_counter=0;
-		sem_post(&Comm_error_sem);			//Semaphore to activate the Maintenance thread
+	   sem_post(&Comm_error_sem);			//Semaphore to activate the Maintenance thread
    }
 }
 
@@ -133,6 +136,7 @@ void Kill_Them_All(void)
 			thread_cancel=pthread_cancel (Threads_Pointer[i]);
 			if(thread_cancel<0)
 			{
+				Debug_Message_Error("\n Error while closing Threads \n");
 				perror("\n Impossible to close the Thread correctly \n");
 			}
 			else
@@ -141,7 +145,8 @@ void Kill_Them_All(void)
 			}
 			thread_cancel=pthread_join (Threads_Pointer[i], NULL);
 			if(FALSE!=thread_cancel)
-			{		//Esperar a que sean eliminados
+			{	
+				Debug_Message_Error("\n Error while joining Threads \n");
 				perror("\n Not possible to join the Thread \n");
 			}
 			else
@@ -149,9 +154,11 @@ void Kill_Them_All(void)
 				perror("Succesfully Joined Thread");
 			}
 		}
+		
+		Debug_Message_Notice("RF Reset ");
 		printf("Freeing Dynamic Memory\n");
 		RF_Comm_Clean();
-		
+
 		printf("Cleaning List  of RF Devices\n");
 		Clean_File_Interface("dhcplist.txt");
 		
@@ -187,6 +194,7 @@ void* RF_Maintenance_thread (void*parmthread)
 		pthread_mutex_lock (&mutexspi);
 		pthread_mutex_lock (&mutexconsola);
 		pthread_mutex_lock (&mutexfile);
+		Debug_Message_Warning("Fire Monitor System: Executing Maintenace Tasks");
 		Clean_File_Interface("dhcplist.txt");
 		RF_Comm_Clean();
 		RF_Reset_State(&prim);
@@ -211,6 +219,7 @@ void* Check_thread (void*parmthread)
 		pthread_mutex_lock (&mutexprim);
 		pthread_mutex_lock (&mutexconsola);
 		pthread_mutex_lock (&mutexfile);
+		Debug_Message_Debug("Fire Monitor System: File Update");
 		CurrentState(&prim);
 		pthread_mutex_unlock (&mutexfile);
 		pthread_mutex_unlock (&mutexconsola);
@@ -234,7 +243,8 @@ void* Control_thread (void*parmthread)
 	while(1){
 		sem_wait(&Update_sem);
 		pthread_mutex_lock (&mutexprim);
-		pthread_mutex_lock (&mutexconsola);
+		pthread_mutex_lock (&mutexconsola);	
+		Debug_Message_Debug("Fire Monitor System: Control Tasks");
 		primControl(&prim);
 		pthread_mutex_unlock (&mutexconsola);
 		pthread_mutex_unlock (&mutexprim);
@@ -260,6 +270,9 @@ int Init_All(void)
 	struct sigaction SIGINT_sa;
 	struct sigaction SIGTERM_sa;
 	
+	Init_Debug();
+	Debug_Message_Notice("Fire Monitor System: ON");
+	
 	printf("RPI DISPOSITIVO PRIMARIO");
 	primInit(&prim);
 	
@@ -269,6 +282,7 @@ int Init_All(void)
 	sigemptyset(&SIGTERM_sa.sa_mask);
 
 	if ( ERRORES == sigaction(SIGTERM, &SIGTERM_sa, NULL)) {
+		Debug_Message_Error("Fire Monitor System: SIGTERM Error");
 		perror("Error setting the configuration for the SIGTERM Handler  ");
 		exit(ERROR_EXIT);
 	}
@@ -282,6 +296,7 @@ int Init_All(void)
 	sigemptyset(&SIGINT_sa.sa_mask);
 
 	if ( ERRORES == sigaction(SIGINT, &SIGINT_sa, NULL)) {
+		Debug_Message_Error("Fire Monitor System: SIGINT Error");
 		perror("Error setting the configuration for the SIGINT Handler  ");
 		exit(ERROR_EXIT);
 	}
@@ -301,25 +316,17 @@ int Init_All(void)
 	timer_create(CLOCK_REALTIME, &sev, &timerid);
 	trigger.it_value.tv_sec = 5;
 	
-	//Creacion de Archivos .txt
-	//statesfd = fopen("STATES_LOG.txt", "w+");
-
-	//if (statesfd == NULL) {
-	//	printf("Error creating opening the file: STATES_LOG.txt.\n");
-	//	while(true){
-	//	}
-	//}
-	Init_File_Interface();
-	//statesfd = fopen("STATES_LOG.txt", "w+");
-	//fprintf(statesfd,"Inicializando Equipo\n");
-	//fclose(statesfd);
 	
+	//Init File
+	Init_File_Interface();
+
 	Clean_File_Interface("dhcplist.txt");
 
-	//Creacion del Thread de Update
+	//Thread creation and configuration
 	error_check = pthread_create (&Threads_Pointer[0], NULL,Control_thread, NULL);
 	if (error_check) 
 	{
+		Debug_Message_Error("Fire Monitor System: Update FSM Error");
 		perror("Error during the creation of the Update FSM Thread");
 		return -1;
 	}
@@ -327,10 +334,11 @@ int Init_All(void)
 		perror("* --Creation of Update FSM Thread:");
 	}
 	
-	//Creacion del "Thread State"
+	//Creation of the "Thread State"
 	error_check = pthread_create (&Threads_Pointer[1], NULL,Check_thread, NULL);
 	if (error_check) 
 	{
+		Debug_Message_Error("Fire Monitor System: Current State Error");
 		perror("Error during the creation of the Current State Thread");
 		return -1;
 	}
@@ -338,10 +346,11 @@ int Init_All(void)
 		perror("* Creation of Current State Thread:");
 	}	
 	
-	//Creacion del RF_Maintenance Thread
+	//Creation of RF_Maintenance Thread
 	error_check = pthread_create (&Threads_Pointer[2], NULL,RF_Maintenance_thread, NULL);
 	if (error_check) 
 	{
+		Debug_Message_Error("Fire Monitor System: RF Maintenance Error");
 		perror("Error during the creation of the RF Maintenace Thread Thread");
 		return -1;
 	}
@@ -351,6 +360,8 @@ int Init_All(void)
 	
 	desbloquearSign();	
 	Nodes_Config(&prim);
+	
+	Debug_Message_Debug("Fire Monitor System: Config. OK!");
 	
 	while( true )
 	{			
@@ -364,5 +375,5 @@ int Init_All(void)
 		usleep(UPDATE_INTERVALU);
 	}
 	return-1;
-//	
+	
 }

@@ -12,7 +12,8 @@ int Init_database(){
 sqlite3 *db;
    char *zErrMsg = 0;
    int rc;
-   char* sql;
+   char sql[100];
+   //char * sql;
 
    /* Open database */
    rc = sqlite3_open(database, &db);
@@ -24,17 +25,8 @@ sqlite3 *db;
       fprintf(stdout, "Opened database successfully\n");
    }
 
-/*
-   // Create SQL statement 
-   sql = "CREATE TABLE EVENTS (" \
-   " ID INTEGER PRIMARY KEY AUTOINCREMENT," \
-   " Date TEXT," \
-   " State TEXT,"\
-   " RF_State TEXT,"\
-   " Nodes TEXT );";
-*/
-	sql = "DELETE FROM EVENTS;"; 
-   //sprintf(sql,"DELETE FROM EVENTS;");
+	//sql = "DELETE FROM EVENTS;"; 
+   sprintf(sql,"DELETE FROM EVENTS;");
    
    /* Execute SQL statement */
    rc = sqlite3_exec(db, sql, 0, 0, &zErrMsg);
@@ -49,8 +41,8 @@ sqlite3 *db;
       fprintf(stdout, "Table created successfully\n");
    }
    
-   //sprintf(sql,"DELETE FROM sqlite_sequence WHERE NAME='EVENTS';");
-   sql = "DELETE FROM sqlite_sequence WHERE NAME='EVENTS';";
+   sprintf(sql,"DELETE FROM sqlite_sequence WHERE NAME='EVENTS';");
+   //sql = "DELETE FROM sqlite_sequence WHERE NAME='EVENTS';";
    
    /* Execute SQL statement */
    rc = sqlite3_exec(db, sql, 0, 0, &zErrMsg);
@@ -75,7 +67,8 @@ int Init_RF_database(){
 sqlite3 *db;
    char *zErrMsg = 0;
    int rc;
-   char* sql;
+   //char* sql;
+   char sql[100];
 
    /* Open database */
    rc = sqlite3_open(RFdatabase, &db);
@@ -87,17 +80,7 @@ sqlite3 *db;
       fprintf(stdout, "Opened database successfully\n");
    }
 
-/*
-   // Create SQL statement 
-   sql = "CREATE TABLE EVENTS (" \
-   " ID INTEGER PRIMARY KEY AUTOINCREMENT," \
-   " Date TEXT," \
-   " State TEXT,"\
-   " RF_State TEXT,"\
-   " Nodes TEXT );";
-*/
-	sql = "DELETE FROM RF_NODES;"; 
-   //sprintf(sql,"DELETE FROM EVENTS;");
+   sprintf(sql,"DELETE FROM RF_NODES;");
    
    /* Execute SQL statement */
    rc = sqlite3_exec(db, sql, 0, 0, &zErrMsg);
@@ -112,8 +95,7 @@ sqlite3 *db;
       fprintf(stdout, "Table created successfully\n");
    }
    
-   //sprintf(sql,"DELETE FROM sqlite_sequence WHERE NAME='EVENTS';");
-   sql = "DELETE FROM sqlite_sequence WHERE NAME='RF_NODES';";
+   sprintf(sql,"DELETE FROM sqlite_sequence WHERE NAME='RF_NODES';");
    
    /* Execute SQL statement */
    rc = sqlite3_exec(db, sql, 0, 0, &zErrMsg);
@@ -196,6 +178,38 @@ int database_update(u_int16_t* Line_Counter,char* STATE, char* RF, char* NODES){
    return (0);
 }
 
+bool ID_Validation(int ID, sqlite3_stmt *stmt,sqlite3 *db ){
+   int data;
+   sqlite3_prepare_v2(db, "SELECT CODE FROM RF_NODES WHERE ID =? ;", -1, &stmt, NULL);
+   
+   if(sqlite3_bind_int(stmt, 1, ID)!=SQLITE_OK)
+   {
+      printf("\nCould not bind int1-.\n");
+      sqlite3_finalize(stmt);
+      return 1;
+   }   
+   if(sqlite3_step(stmt)!= SQLITE_DONE) {
+      printf("\nCould not step (execute) stmt.\n");
+      sqlite3_finalize(stmt);
+      return 1;
+   }
+   
+   data = sqlite3_column_int(stmt,0);
+   
+   printf("\n Data: %d \n",data);
+   sqlite3_reset(stmt);
+   
+   if(data!=0)
+   {
+      return 1;
+   }
+   else
+   {
+      return 0;
+   }
+   
+}
+
 int RF_database_update(int ID,int CODE,int STATUS){
    sqlite3 *db;
    int rc;
@@ -204,12 +218,45 @@ int RF_database_update(int ID,int CODE,int STATUS){
 
    if( rc ) {
       fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-      return(0);
+      return 1;
    } else {
       fprintf(stderr, "Opened database successfully\n");
    }
    
    sqlite3_stmt *stmt;
+   
+   if(ID_Validation(ID,stmt,db))
+   {
+      sqlite3_prepare_v2(db, "UPDATE RF_NODES SET CODE =?, STATUS =? WHERE ID =? ;", -1, &stmt, NULL);
+
+      if(sqlite3_bind_int(stmt, 1, CODE)!=SQLITE_OK)
+      {
+         printf("\nCould not bind int1.\n");
+         sqlite3_finalize(stmt);
+         return 1;
+      }
+      if(sqlite3_bind_int(stmt, 2, STATUS)!=SQLITE_OK)
+      {
+         printf("\nCould not bind int2.\n");
+         sqlite3_finalize(stmt);
+         return 1;
+      }
+      if(sqlite3_bind_int(stmt, 3, ID)!=SQLITE_OK)
+      {
+         printf("\nCould not bind int3.\n");
+         sqlite3_finalize(stmt);
+         return 1;
+      }   
+      if(sqlite3_step(stmt)!= SQLITE_DONE) {
+         printf("\nCould not step (execute) stmt.\n");
+         sqlite3_finalize(stmt);
+         return 1;
+      }
+      sqlite3_finalize(stmt);
+
+      sqlite3_close(db);
+   }
+   else {
    sqlite3_prepare_v2(db, "INSERT INTO RF_NODES (ID,CODE,STATUS) "  \
    "VALUES (?,?,?);", -1, &stmt, NULL);
    
@@ -240,5 +287,6 @@ int RF_database_update(int ID,int CODE,int STATUS){
    sqlite3_finalize(stmt);
 
    sqlite3_close(db);
+   }
    return (0);
 }

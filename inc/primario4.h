@@ -53,6 +53,7 @@ extern "C" {
 #define NO_ERROR 0			   //Timeout limit between transitionsions
 #define ERROR_DETECTED 1			   //Timeout limit between transitionsions
 
+#define O_ASCII 48
 //#define DEBUG
 
 #define TRUE 1

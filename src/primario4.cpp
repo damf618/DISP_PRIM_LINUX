@@ -21,6 +21,7 @@
 #include "primario4.h"
 #include "antirebote.h"
 #include "Primario_LEDS.h"
+#include <Debug_Logging.h>
 
 #include <signal.h> 
 
@@ -82,13 +83,14 @@ void Nodes_Config(dprimario_t * prim){
 	int n_node=0;
 	FILE *fptr;
 	fptr = fopen("Config.txt","r");
-	
+	Debug_Message_Debug("Fire Monitor System: Node-Red NOdes Update ");
 	if(fptr == NULL)
 	{
+		Debug_Message_Error("Fire Monitor System: Error Update Nodes");
 		printf("Not possible to Update Nodes");              
 	}else
 	{
-		n_node = fgetc(fptr)-48;		//THe file is read using the ascii table
+		n_node = fgetc(fptr)-O_ASCII;		//The file is read using the ascii table
 		if(n_node!=prim->min_node)
 		{
 			prim->min_node=n_node;
@@ -113,9 +115,7 @@ void CurrentState(dprimario_t *prim)
 	 char NODES[50];
 	 char STATE[50];
 	 char RF[50];
-	 
-	//char CSTATE[50];
-	char INCOMPLETE[20];
+	 char INCOMPLETE[20];
 	
 	Nodes_Config(prim);
 	
@@ -127,6 +127,8 @@ void CurrentState(dprimario_t *prim)
 	if(((prim->previous_state!=prim->state)&&(PresState(prim->state)))||(prim->previous_comm_state!=prim->comm_status)
 	 ||((prim->active_nodes<prim->min_node)&&(!prim->Incomplete_flag))||(prim->node_update))
 	{	
+		Debug_Message_Debug("Fire Monitor System: Log Update ");
+		
 		if(prim->node_update){
 			prim->node_update=0;
 		}
@@ -134,94 +136,49 @@ void CurrentState(dprimario_t *prim)
 		prim->Line_Counter++;
 		prim->previous_state=prim->state;	
 		prim->previous_comm_state=prim->comm_status;
-		/*
-		// funcion que reciba linecounter y decida a partir de ahi
-		if(prim->Line_Counter>=N_RECORD_EVENTS)
-		{
-			statesfd = fopen("STATES_LOG.txt","w+");
-			prim->Line_Counter=0;
-		}else{
-			statesfd = fopen("STATES_LOG.txt","a");
-		}
-		while(statesfd == NULL)
-		{
-			if(prim->Line_Counter>=N_RECORD_EVENTS)
-			{
-			statesfd = fopen("STATES_LOG.txt","w+");
-			}else
-			{
-			statesfd = fopen("STATES_LOG.txt","a");
-			}
-			usleep(ERROR_INTERVALM);
-		};
-		
-		//eliminar ambas, se ejecutan siempre al enviar el dato
-		timestamp(CSTATE);
-		fprintf(statesfd,CSTATE, sizeof(CSTATE));
-
-		*/
 		
 		switch( prim->state )
 		{
 			case PRENORMAL:
 				printf("\r\n CURRENT STATE: PRE-NORMAL \r\n");
 				sprintf(STATE,"PRENORMAL\n");
-				//sprintf(CSTATE,"PRENORMAL\n");
-				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case PREALARM:
 				printf("\r\n CURRENT STATE: PRE-ALARM \r\n");
 				sprintf(STATE,"PREALARM\n");
-				//sprintf(CSTATE,"PREALARM\n");
-				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case PREFAIL:
 				printf("\r\n CURRENT STATE: PRE-FAIL \r\n");
 				sprintf(STATE,"PREFAIL\n");
-				//sprintf(CSTATE,"PREFAIL\n");
-				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case PRE_ALARM_FAIL:
 				printf("\r\n CURRENT STATE: PRE ALARM/FAIL\r\n");
 				sprintf(STATE,"PRE_ALARM_FAIL\n");
-				//sprintf(CSTATE,"PRE_ALARM_FAIL\n");
-				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case NORMAL:
 				printf("\r\n CURRENT STATE: NORMAL \r\n");
 				sprintf(STATE,"NORMAL\n");
-				//sprintf(CSTATE,"NORMAL\n");
-				//printf("%s\n",CSTATE);
-				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case FAIL:
 				printf("\r\n CURRENT STATE: FAIL\r\n");
 				sprintf(STATE,"FAIL\n");
-				//sprintf(CSTATE,"FAIL\n");
-				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case ALARM:
 				printf("\r\n CURRENT STATE: ALARM\r\n");
 				sprintf(STATE,"ALARM\n");
-				//sprintf(CSTATE,"ALARM\n");
-				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			case ALARM_FAIL:
 				printf("\r\n CURRENT STATE: ALARM/FAIL \r\n");
 				sprintf(STATE,"ALARM_FAIL\n");
-				//sprintf(CSTATE,"ALARM_FAIL\n");
-				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 				break;
 			default:
 				printf("\r\n CURRENT STATE NOT DEFINED: %d\r\n",prim->state);
 				sprintf(STATE,"ERROR\n");
-				//sprintf(CSTATE,"ERROR\n");
-				//fprintf(statesfd,CSTATE, sizeof(CSTATE));
+				Debug_Message_Error("Fire Monitor System: Undefined State ");
 		}
+		
 		if((prim->active_nodes<prim->min_node)&&(!prim->Incomplete_flag))
 		{
-//=+++++++++++++++++++++++=++++++++++++++++++++++LOOOOK OUT !!!!=+++++++++++++++++++++=+++++++++++++++
-			//printf("Incomplete for me");
 			prim->Incomplete_flag=1;
 			timer_settime(timerid, 0, &trigger, NULL);
 			sprintf(INCOMPLETE," (INCOMPLETE)");
@@ -230,44 +187,34 @@ void CurrentState(dprimario_t *prim)
 			sprintf(INCOMPLETE," ");
 			prim->Incomplete_counter=0;
 		}
-		if(prim->min_node>0){
+		
+		if(prim->min_node>0)
+		{
 			switch(prim->comm_status)
 			{
 				case OK:
 					sprintf(RF,"COMM OK!%s\n",INCOMPLETE);
-					//sprintf(CSTATE,"COMM OK!%s\n",INCOMPLETE);
-					//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 					break;
 				case ERROR:
 					sprintf(RF,"COMM ERROR\n");
-					//sprintf(CSTATE,"COMM ERROR\n");
-					//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 					sem_post(&Comm_error_sem);
+					Debug_Message_Debug("Fire Monitor System: RF_Error ");
 					break;
 				case HOPPING:
 					sprintf(RF,"COMM HOPPING\n");
-					//sprintf(CSTATE,"COMM HOPPING\n");
-					//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 					break;	
 				case FIXING:
 					sprintf(RF,"COMM FIXING\n");
-					//sprintf(CSTATE,"COMM FIXING\n");
-					//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 					break;	
 			}
 		}
-		else{
+		else
+		{
 			sprintf(RF,"COMM OK! \n");
-			//sprintf(CSTATE,"COMM OK! \n");
-			//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 		}
 		sprintf(NODES,"ACTIVES NODES -> %d\n",prim->active_nodes);
-		//sprintf(CSTATE,"ACTIVES NODES -> %d\n",prim->active_nodes);
-		//fprintf(statesfd,CSTATE, sizeof(CSTATE));
 		prim->previous_active_nodes=prim->active_nodes;
-		//eliminar
-		//fclose(statesfd);
-		
+
 		Update_File_Interface(&prim->Line_Counter,STATE,RF,NODES);	
 		RF_Update_File_Interface(RF_Comm_Nodes_Database());
 	}	  
@@ -315,7 +262,8 @@ bool Timeout_Polling(dprimario_t * prim)
 	bool timeout=FALSE;
 	timeout = !(delayRead(&prim->delay));
 	if(!timeout)
-	printf("Timeout Event");
+	Debug_Message_Debug("Fire Monitor System: Timeout Task ");
+	//printf("Timeout Event");
 	return timeout;
 }
 
@@ -333,15 +281,17 @@ bool Timeout_Polling(dprimario_t * prim)
 **/
 static void PRESTUCK(dprimario_t * prim)
 {		
+	
 	if(!Timeout_Polling(prim))
 	{
+		Debug_Message_Warning("Fire Monitor System: Timeout Warning ");
+		
 		if((prim->state==PREALARM)||(prim->state==PREFAIL)||
 			(prim->state==PRENORMAL)||(prim->state==PRE_ALARM_FAIL))
 		{
 			//Timeout:present and State: PRE-XXXX directly to FAIL
 			if(prim->COMMFLAG){
 				prim->state = FAIL;
-				//ResetChange(prim);
 				prim->COMMFLAG=1;
 			}
 			else
@@ -351,18 +301,21 @@ static void PRESTUCK(dprimario_t * prim)
 					printf("\r\n No Event detected, Normal Mode On \r\n");
 					prim->state=NORMAL;
 				}
-				else{
+				else
+				{
 					printf("\r\n No Additional Events detected, Out of Alarm Mode1 \r\n");
 					prim->state=PRENORMAL;
 				}
 			}
 		}
-		else{
+		else
+		{
 			//Timeout transition limit reached
 				if(prim->state==NORMAL){
 					printf("\r\n Normal Mode \r\n");
 				}	
-				else if((!prim->Fire_event)&&(!prim->Fail_event)){
+				else if((!prim->Fire_event)&&(!prim->Fail_event))
+				{
 					printf("\r\n No Additional Events detected, Out of Alarm Mode2 \r\n");
 					prim->state=PRENORMAL;
 				}
@@ -487,6 +440,7 @@ dprim_state_t CommCheck(dprimario_t * prim, dprim_state_t casea, dprim_state_t c
 			//Clean the List of Updated Nodes
 			AUX=RF_Comm_Code();
 			comm_state=NO_STATE;
+			Debug_Message_Debug("Fire Monitor System: NO RF Message  ");
 		}
 	}
 	return comm_state;	
@@ -514,10 +468,10 @@ static Contact_state_t Local_Fire_Event(dprimario_t * prim,dprim_state_t casea,d
 	Contact_state_t rtn=NO_EVENT;
 	dprim_state_t state=NO_STATE;
 	state = ButtonCheck(prim,casea,casen,ALARM);
-	
-	/*ACTUALIZA SI HAY TRANSICION ??*/
+
 	if(prim->Comm_Transition)
 	{
+		Debug_Message_Debug("Fire Monitor System: Transition ");
 		if(prim->Alarm_Transition)
 		{
 				prim->AlarmContact_state=casea;
@@ -531,6 +485,7 @@ static Contact_state_t Local_Fire_Event(dprimario_t * prim,dprim_state_t casea,d
 	{
 		if((state!=casea)&&(state!=casen))
 		{
+			Debug_Message_Error("Fire Monitor System: Unexpected Transition ");
 			printf("\r\n Unexpected Alarm Signal \r\n");
 			rtn=EVENT_ERROR;
 		}
@@ -538,6 +493,7 @@ static Contact_state_t Local_Fire_Event(dprimario_t * prim,dprim_state_t casea,d
 		{		
 			if(state!=prim->AlarmContact_state)
 			{
+				Debug_Message_Debug("Fire Monitor System: New Event ");
 				prim->AlarmContact_state=state;
 				rtn=EVENT;
 			}
@@ -686,7 +642,6 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 	
 	if(prim->comm_status==OK)
 	{
-		//Comm=CommCheck(prim,casea,casef,casen,caseaf);
 		if(Comm!=NO_STATE)
 		{
 			if(Comm!=prim->Comm_Alarm_state){
@@ -757,22 +712,26 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 		{
 			prim->state=caseaf;
 			printf("\r\n ====== Alarm-Fail Status ====== \r\n");
+			Debug_Message_Notice("Alarm-Fail Status");
 		}
 		else if((LocalA==casea) || (Comm==casea))
 		{
 			prim->state=casea;
 			printf("\r\n ====== Alarm Status ====== \r\n");
+			Debug_Message_Notice("Alarm Status");
 		}
 		else if((LocalF==casef) || (Comm==casef))
 		{
 			prim->state=casef;
 			printf("\r\n ====== Fail Status ====== \r\n");
+			Debug_Message_Notice("Fail Status");
 		}
 		else if((((LocalA==casen)||(LocalA==NO_STATE))&&
 			((LocalF==casen)||(LocalF==NO_STATE)))||(Comm==casen))
 		{
 			prim->state=casen;
 			printf("\r\n ====== Normal Status ====== \r\n");
+			Debug_Message_Notice("Normal Status");
 		}
 		else
 		{
@@ -780,11 +739,11 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 			printf(" Error Description \r\n");
 			printf(" State:%d\r\n  LocalA:%d\r\n LocalF:%d\r\n  Comm:%d\r\n",prim->state,LocalA,LocalF,Comm);
 			prim->state=FAIL;
+			Debug_Message_Notice("Error Status");
 		}
 		
 		if (Comm_Event)
 		{
-			//ResetChange(prim);
 			prim->Comm_Transition=1;
 			if(prim->Fire_event){
 				prim->Alarm_Transition=1;
@@ -808,6 +767,7 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 #if defined(DEBUG)
 	printf(" State:%d\r\n  LocalA:%d\r\n LocalF:%d\r\n  Comm:%d\r\n",prim->state,LocalA,LocalF,Comm);
 #endif
+
 }	
 
 //update the MEFSs,

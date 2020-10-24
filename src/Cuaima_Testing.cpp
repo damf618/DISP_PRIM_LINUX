@@ -14,7 +14,8 @@
 	
 	@see Header_Validation,Comm_Code
 **/
-static bool Insert(int id, int Code,RF_List_t* RF_List){
+static bool Insert(int id, int Code,RF_List_t* RF_List)
+{
 	
 	RF_Device_t * Mem_Block;
 	Mem_Block = (RF_Device_t *)malloc(sizeof(RF_Device_t));
@@ -36,7 +37,8 @@ static bool Insert(int id, int Code,RF_List_t* RF_List){
 	return rtn;
 }
 
-void Comm_Nodes(RF_List_t* RF_List){
+void Comm_Nodes(RF_List_t* RF_List)
+{
 	int i;
 	int counter=0;
 	RF_Device_t * Mem_Block;
@@ -55,17 +57,8 @@ void Comm_Nodes(RF_List_t* RF_List){
 }
 
 //Allows to check if a message  is received, is it from a  new RF device or an old one
-/** If we received a RF message with a valid code, we save the id and the code sent. This
- * code allows us to verify if the message received was from a new RF Device or not.
- * 
-	
-	@param int id, ID of the new RF Device detected.
-	@param RF_List_t* RF_List Array of RF_Device_t to keep track of the memory required
-	from the system
-	
-	@see Header_Validation,Comm_Code
-**/
-int Header_Check(int id, RF_List_t* RF_List){
+int Header_Check(int id, RF_List_t* RF_List)
+{
 	int rtn=333;
 	int i;
 	RF_Device_t * Mem_Block;
@@ -81,7 +74,8 @@ int Header_Check(int id, RF_List_t* RF_List){
 	return rtn;
 }
 
-static void Update_Node_Data(RF_Device_t RF_Device,Nodes_Database_t* Data_RF_List, int i){
+static void Update_Node_Data(RF_Device_t RF_Device,Nodes_Database_t* Data_RF_List, int i)
+{
 	Data_RF_List->Counter++;
 	Data_RF_List->Nodes_Data[i].Node_ID=RF_Device.Node_ID;
 	Data_RF_List->Nodes_Data[i].RF_Code=RF_Device.RF_Code;
@@ -90,24 +84,8 @@ static void Update_Node_Data(RF_Device_t RF_Device,Nodes_Database_t* Data_RF_Lis
 
 //The link between RF Communication and primario4, this funciton returns the corresponding
 //code based on the RF_List generated between calls.
-/** If we received a RF message with a valid code, we save the id and the code sent. This
- * code allows us to verify if the message received was from a new RF Device or not.
- * In case we have already received a message from this RF Device before, we update the 
- * code associated in the RF_List.
- * Calling this function evaluate the different codes saved and based on it's priority it
- * returns the corresponding code, it only takes on consideration those codes associated
- * to RF_Devices which codes were updated between calls of this function, once this function
- * is called it "disables" the id until Header_Validation enables it through the updated 
- * flag.
- * This scheme also give us information about the number of nodes interacting with us, 
- * beside the number of nodes in the system.
-	
-	@param RF_List_t* RF_List Array of RF_Device_t to keep track of the memory required
-	from the system
-	
-	@see Header_Validation.
-**/
-int Comm_Code(RF_List_t* RF_List,Nodes_Database_t* Data_RF_List){
+int Comm_Code(RF_List_t* RF_List,Nodes_Database_t* Data_RF_List)
+{
 	int Final_Code;
 	bool Alarm=0;
 	bool Fail=0;
@@ -173,18 +151,8 @@ int Comm_Code(RF_List_t* RF_List,Nodes_Database_t* Data_RF_List){
 
 
 //Allows to check if a message  is received, is it from a  new RF device or an old one
-/** If we received a RF message with a valid code, we save the id and the code sent. This
- * function allows us to verify if the message received was from a new RF Device or not.
- * In case we have already received a message from this RF Device before, we update the 
- * code associated in the RF_List
-	
-	@param int id, ID of the new RF Device detected.
-	@param RF_List_t* RF_List Array of RF_Device_t to keep track of the memory required
-	from the system
-	
-	@see Comm_Code
-**/
-bool Header_Validation(int id, int Code, RF_List_t* RF_List){
+bool Header_Validation(int id, int Code, RF_List_t* RF_List)
+{
 	
 	bool rtn=1;
 	int aux;

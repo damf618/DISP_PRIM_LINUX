@@ -7,6 +7,7 @@
 #include <File_Interface.h>
 #include "database.h"  
 
+//Initialization of the system log database
 int Init_database(){
 
 sqlite3 *db;
@@ -62,6 +63,7 @@ sqlite3 *db;
 
 }
 
+//Initialization of the RF system log database
 int Init_RF_database(){
 
 sqlite3 *db;
@@ -115,6 +117,7 @@ sqlite3 *db;
 
 }
 
+//System Log Database Update  
 int database_update(u_int16_t* Line_Counter,char* STATE, char* RF, char* NODES){
   
    sqlite3 *db;
@@ -178,6 +181,7 @@ int database_update(u_int16_t* Line_Counter,char* STATE, char* RF, char* NODES){
    return (0);
 }
 
+//Internal ID Validation, to check if the ID exits
 bool ID_Validation(int ID, sqlite3_stmt *stmt,sqlite3 *db ){
    int data;
    sqlite3_prepare_v2(db, "SELECT CODE FROM RF_NODES WHERE ID =? ;", -1, &stmt, NULL);
@@ -210,6 +214,7 @@ bool ID_Validation(int ID, sqlite3_stmt *stmt,sqlite3 *db ){
    
 }
 
+//RF System Log Database Update
 int RF_database_update(int ID,int CODE,int STATUS){
    sqlite3 *db;
    int rc;

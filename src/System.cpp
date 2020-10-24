@@ -253,17 +253,6 @@ void* Control_thread (void*parmthread)
 }
 
 // Thread 1/4 to init the whole system/
-/** This thread starts the entire system, is in charge of set up the software properly to
- * work withthe resources of the Linux SO it creates the other 2 threads. After the full
- * setup it continues to be called periodically to update the state of all the inputs of the
- * system. It requires the console, access to the dprimario_t struct and also the SPI comm
- * module.   
-	
-	@note Is called once from the main it continues until the the 2 possible Termination
-	Signals.
-	
-	@see Control_thread, Check_thread
-**/
 int Init_All(void)
 {
 	int error_check;

@@ -71,15 +71,8 @@ static void ResetChange(dprimario_t * prim)
 }
 
 // Extract the number of nodes stablished in the file Config.txt
-/** The system keeps track of how many RF Devices are actively communicating with the
- * master device, in case there are fewer active nodes than the mininum number of nodes 
- * stablished, the Incomplete status is activated alongside the Incomplete protocol, the
- * configurartion of the minimun nomber of nodes, is made through a web gui.
-	
-	@param prim struct dprimario_t containing the entire variables needed fot the system.
-	@see Current_State
-**/
-void Nodes_Config(dprimario_t * prim){
+void Nodes_Config(dprimario_t * prim)
+{
 	int n_node=0;
 	FILE *fptr;
 	fptr = fopen("Config.txt","r");
@@ -102,14 +95,6 @@ void Nodes_Config(dprimario_t * prim){
 }
 
 // Notification of the users and update of the Log files 
-/** This function is in charge of the update of the system, it prints on the console the
- * current state of the system and also if there was a change of state between calls, it 
- * updates the logfile to be uploaded to the Firebase Realtime Database.   
-	
-	@param prim struct dprimario_t containing the entire variables needed fot the system.
-	@note By default the nameof the log file is "STATES_LOG.txt"
-	@see timestamp, Check_thread
-**/
 void CurrentState(dprimario_t *prim)
 {
 	 char NODES[50];
@@ -129,7 +114,8 @@ void CurrentState(dprimario_t *prim)
 	{	
 		Debug_Message_Debug("Fire Monitor System: Log Update ");
 		
-		if(prim->node_update){
+		if(prim->node_update)
+		{
 			prim->node_update=0;
 		}
 		
@@ -771,18 +757,6 @@ static void FullCheck(dprimario_t * prim,dprim_state_t casea, dprim_state_t case
 }	
 
 //update the MEFSs,
-/** This functions updates all the inputs of the system, is called periodically by the
- * Init_All thread (Main Thread). It must be called frequently to make sure to
- * capture the events.    
-	
-	@param prim struct dprimario_t containing the entire variables needed fot the system.
-	@note By defaut the system the RF behavior acts as a buffer, which means that if there
-	are RF Codesunprocessed, the will stack until there is none. If the update time is not
-	selected properly there will be a dead time between transitions in the seondary device
-	and the received code. 
-	
-	@see Init_All
-**/
 void primUpdates(dprimario_t * pPrimario)
 {
 	PRESTUCK(pPrimario);	
@@ -795,12 +769,6 @@ void primUpdates(dprimario_t * pPrimario)
 }
 
 // It sets initial conditions for the entire program
-/** This functions sets the initial conditions of the system, configures the GPIO,
- *  Inits all the different FSM involved.   
-	
-	@param prim struct dprimario_t containing the entire variables needed fot the system. 
-	@see Init_All
-**/
 bool primInit(dprimario_t * pPrimario)
 {
 
@@ -816,7 +784,6 @@ bool primInit(dprimario_t * pPrimario)
 	pPrimario->Alarm_Transition = 0;
 	pPrimario->Fail_Transition = 0;
 	pPrimario->Comm_Transition=0;
-	pPrimario->Maintenance_Timer=0;
 	pPrimario->previous_active_nodes=0;
 	pPrimario->active_nodes=0;
 	pPrimario->Incomplete_flag=0;
@@ -837,14 +804,6 @@ bool primInit(dprimario_t * pPrimario)
 
 // The MEFS logic, execute the actions related to the state
 // and verifies if there is any possible transition.
-/** This function sets the correct sequence of states, is the one that determines which 
- * led turn on and which state should go in the presence of any event.   
-	
-	@param prim struct dprimario_t containing the entire variables needed fot the system. 
-	@note This FSM only stablihes which are the possible state to move to, but the decision
-	to move to one option is made by FullCheck 
-	@see Init_All, FullCheck
-**/
 bool primControl(dprimario_t * pPrimario)
 {
 
